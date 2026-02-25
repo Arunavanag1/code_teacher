@@ -14,6 +14,6 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["cli/**/*.ts", "agents/**/*.ts", "core/**/*.ts", "config/**/*.ts"],
+  "include": ["cli/**/*.ts", "agents/**/*.ts", "core/**/*.ts", "config/**/*.ts", "providers/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
