@@ -102,13 +102,57 @@ export function formatHeader(
     return VERTICAL + content + ' '.repeat(padding) + VERTICAL;
   }
 
-  const lines = [
-    topBorder,
-    boxLine(line1),
-    boxLine(line2),
-    boxLine(line3),
-    bottomBorder,
-  ];
+  const lines = [topBorder, boxLine(line1), boxLine(line2), boxLine(line3), bottomBorder];
 
   return `${ANSI.bold}${ANSI.cyan}${lines.join('\n')}${ANSI.reset}`;
+}
+
+/**
+ * Formats a section header with emoji and horizontal divider.
+ * Example output:
+ *   🎯 TOP HIGH-IMPACT SECTIONS
+ *   ────────────────────────────────────────────────────────────
+ *
+ * @param emoji - The emoji prefix (e.g., '🎯', '📚', '🏗️')
+ * @param label - The section label text
+ */
+export function formatSectionHeader(emoji: string, label: string): string {
+  const DIVIDER_CHAR = '\u2500'; // ─ (horizontal single-line)
+  const dividerWidth = Math.min(getTerminalWidth() - 2, 60);
+  const divider = DIVIDER_CHAR.repeat(dividerWidth);
+  return `${ANSI.bold}${ANSI.yellow}${emoji} ${label}${ANSI.reset}\n${ANSI.dim}${divider}${ANSI.reset}`;
+}
+
+/**
+ * Formats a numeric score with color coding.
+ * - Green for high scores (8.0-10.0)
+ * - Yellow for medium scores (4.0-7.9)
+ * - Red for low scores (0-3.9)
+ *
+ * Output format: "9.2/10"
+ *
+ * @param score - The numeric score (0-10)
+ * @param max - The maximum possible score (typically 10)
+ */
+export function formatScore(score: number, max: number): string {
+  const color = score >= 8 ? ANSI.green : score >= 4 ? ANSI.yellow : ANSI.red;
+  return `${color}${ANSI.bold}${score.toFixed(1)}/${max}${ANSI.reset}`;
+}
+
+/**
+ * Converts a numeric score (0-10) into a colored risk label.
+ * - 8-10: HIGH (bold red)
+ * - 4-7:  MEDIUM (yellow)
+ * - 0-3:  LOW (green)
+ *
+ * Used for Blast Radius and Refactor Risk in the impact section.
+ */
+export function formatRiskLabel(numericScore: number): string {
+  if (numericScore >= 8) {
+    return `${ANSI.bold}${ANSI.red}HIGH${ANSI.reset}`;
+  }
+  if (numericScore >= 4) {
+    return `${ANSI.yellow}MEDIUM${ANSI.reset}`;
+  }
+  return `${ANSI.green}LOW${ANSI.reset}`;
 }
