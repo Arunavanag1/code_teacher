@@ -55,3 +55,60 @@ export function getTerminalWidth(): number {
   const columns = process.stdout.columns ?? 80;
   return Math.max(columns, 60);
 }
+
+/**
+ * Generates the analysis header using Unicode double-line box-drawing characters.
+ * Matches the spec format:
+ *   ╔══════════════════════════════════════════════════════════════╗
+ *   ║  code-teacher Analysis: my-project                          ║
+ *   ║  Files analyzed: 47 | Languages: TypeScript, Python         ║
+ *   ║  Analysis time: 12.3s                                       ║
+ *   ╚══════════════════════════════════════════════════════════════╝
+ *
+ * @param projectName - The project name (typically path.basename of target)
+ * @param filesCount - Number of files analyzed
+ * @param languages - Array of detected language names
+ * @param durationSec - Analysis duration in seconds (with 1 decimal)
+ */
+export function formatHeader(
+  projectName: string,
+  filesCount: number,
+  languages: string[],
+  durationSec: number,
+): string {
+  const width = getTerminalWidth();
+  // Inner width is total width minus the two vertical border characters
+  const innerWidth = width - 2;
+
+  const TOP_LEFT = '\u2554'; // ╔
+  const TOP_RIGHT = '\u2557'; // ╗
+  const BOTTOM_LEFT = '\u255a'; // ╚
+  const BOTTOM_RIGHT = '\u255d'; // ╝
+  const HORIZONTAL = '\u2550'; // ═
+  const VERTICAL = '\u2551'; // ║
+
+  const horizontalBar = HORIZONTAL.repeat(innerWidth);
+  const topBorder = TOP_LEFT + horizontalBar + TOP_RIGHT;
+  const bottomBorder = BOTTOM_LEFT + horizontalBar + BOTTOM_RIGHT;
+
+  // Content lines (padded to fill inner width)
+  const line1 = `  code-teacher Analysis: ${projectName}`;
+  const line2 = `  Files analyzed: ${filesCount} | Languages: ${languages.join(', ') || 'Unknown'}`;
+  const line3 = `  Analysis time: ${durationSec.toFixed(1)}s`;
+
+  function boxLine(content: string): string {
+    const visible = stripAnsi(content);
+    const padding = Math.max(0, innerWidth - visible.length);
+    return VERTICAL + content + ' '.repeat(padding) + VERTICAL;
+  }
+
+  const lines = [
+    topBorder,
+    boxLine(line1),
+    boxLine(line2),
+    boxLine(line3),
+    bottomBorder,
+  ];
+
+  return `${ANSI.bold}${ANSI.cyan}${lines.join('\n')}${ANSI.reset}`;
+}
