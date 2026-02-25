@@ -5,6 +5,10 @@
  * and enforces maxFileSize limits.
  */
 
+import { readdir, stat, readFile } from 'fs/promises';
+import { join, extname, resolve } from 'path';
+import ignore from 'ignore';
+
 export interface FileInfo {
   path: string;
   extension: string;
@@ -12,11 +16,93 @@ export interface FileInfo {
   lineCount: number;
 }
 
-export async function discoverFiles(
-  _projectPath: string,
-  _ignorePatterns: string[],
-  _maxFileSize: number,
+function isBinary(buffer: Buffer): boolean {
+  const sample = buffer.subarray(0, Math.min(512, buffer.length));
+  for (let i = 0; i < sample.length; i++) {
+    if (sample[i] === 0) return true;
+  }
+  return false;
+}
+
+async function buildIgnoreFilter(
+  projectPath: string,
+  ignorePatterns: string[],
+): Promise<ReturnType<typeof ignore>> {
+  const ig = ignore();
+  // Load .gitignore from project root only
+  try {
+    const gitignoreContent = await readFile(join(projectPath, '.gitignore'), 'utf-8');
+    ig.add(gitignoreContent);
+  } catch {
+    // .gitignore doesn't exist — not an error
+  }
+  // Add config ignore patterns
+  ig.add(ignorePatterns);
+  return ig;
+}
+
+async function walk(
+  baseDir: string,
+  relDir: string,
+  ig: ReturnType<typeof ignore>,
+  maxFileSize: number,
 ): Promise<FileInfo[]> {
-  // TODO: Implement in Phase 2
-  return [];
+  const results: FileInfo[] = [];
+  const entries = await readdir(join(baseDir, relDir), { withFileTypes: true });
+
+  for (const entry of entries) {
+    const relPath = relDir ? `${relDir}/${entry.name}` : entry.name;
+    const fullPath = join(baseDir, relPath);
+
+    // Check ignore patterns first (cheap, avoids I/O)
+    if (ig.ignores(relPath)) continue;
+
+    if (entry.isDirectory()) {
+      // Recurse into subdirectory
+      const subFiles = await walk(baseDir, relPath, ig, maxFileSize);
+      results.push(...subFiles);
+    } else if (entry.isFile()) {
+      // Get file stats
+      const fileStat = await stat(fullPath);
+
+      // Check size limit before reading content
+      if (fileStat.size > maxFileSize) {
+        console.warn(
+          `Warning: Skipping ${relPath} (${fileStat.size} bytes exceeds maxFileSize of ${maxFileSize} bytes)`,
+        );
+        continue;
+      }
+
+      // Read file content for binary detection and line counting
+      const content = await readFile(fullPath);
+
+      // Skip binary files silently
+      if (isBinary(content)) continue;
+
+      // Count lines
+      const textContent = content.toString('utf-8');
+      const rawLines = textContent.split('\n');
+      const lineCount =
+        rawLines[rawLines.length - 1] === '' ? rawLines.length - 1 : rawLines.length;
+
+      results.push({
+        path: resolve(fullPath),
+        extension: extname(entry.name).toLowerCase(),
+        size: fileStat.size,
+        lineCount,
+      });
+    }
+  }
+
+  return results;
+}
+
+export async function discoverFiles(
+  projectPath: string,
+  ignorePatterns: string[],
+  maxFileSize: number,
+): Promise<FileInfo[]> {
+  const resolvedPath = resolve(projectPath);
+  const ig = await buildIgnoreFilter(resolvedPath, ignorePatterns);
+  return walk(resolvedPath, '', ig, maxFileSize);
 }
