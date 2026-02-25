@@ -9,13 +9,15 @@ import type { Config } from '../../config/defaults.js';
 
 /**
  * CLI options passed from commander to the analyze command.
+ * Fields are optional when no default is set in commander,
+ * so undefined means "not provided by the user".
  */
 export interface AnalyzeOptions {
-  mode: string;
+  mode?: string;
   file?: string;
-  verbose: boolean;
-  top: string;
-  json: boolean;
+  verbose?: true;
+  top?: string;
+  json?: true;
   provider?: string;
   model?: string;
 }
@@ -57,12 +59,15 @@ const providerDefaults: Record<string, string> = {
 function autoDetectProvider(): { provider: string; model: string; source: string } | undefined {
   if (process.env.CODE_TEACHER_PROVIDER) {
     const provider = process.env.CODE_TEACHER_PROVIDER;
-    const model =
-      process.env.CODE_TEACHER_MODEL ?? providerDefaults[provider] ?? 'default';
+    const model = process.env.CODE_TEACHER_MODEL ?? providerDefaults[provider] ?? 'default';
     return { provider, model, source: 'CODE_TEACHER_PROVIDER env' };
   }
   if (process.env.ANTHROPIC_API_KEY) {
-    return { provider: 'anthropic', model: providerDefaults.anthropic, source: 'ANTHROPIC_API_KEY' };
+    return {
+      provider: 'anthropic',
+      model: providerDefaults.anthropic,
+      source: 'ANTHROPIC_API_KEY',
+    };
   }
   if (process.env.OPENAI_API_KEY) {
     return { provider: 'openai', model: providerDefaults.openai, source: 'OPENAI_API_KEY' };
@@ -88,7 +93,10 @@ function detectProviderSource(
 
 /**
  * Merges CLI options over loaded config values. CLI flags always win.
- * Resolution order: CLI flag > config file > env auto-detection > defaults
+ * Resolution order: CLI flag > config file > env auto-detection > hardcoded defaults
+ *
+ * When a CLI option is undefined, it means the user did not pass that flag,
+ * so we fall through to config file value, then to hardcoded defaults.
  */
 function mergeConfig(config: Config, options: AnalyzeOptions, targetPath: string): ResolvedConfig {
   const autoDetected = autoDetectProvider();
@@ -96,17 +104,22 @@ function mergeConfig(config: Config, options: AnalyzeOptions, targetPath: string
   const provider = options.provider ?? config.provider ?? autoDetected?.provider;
   const model = options.model ?? config.model ?? autoDetected?.model;
 
-  // Parse --top as integer, fall back to config value
-  const parsedTop = parseInt(options.top, 10);
-  const topN = Number.isFinite(parsedTop) && parsedTop > 0 ? parsedTop : config.topN;
+  // Parse --top as integer only when user explicitly passed it; otherwise use config value
+  let topN = config.topN;
+  if (options.top !== undefined) {
+    const parsedTop = parseInt(options.top, 10);
+    if (Number.isFinite(parsedTop) && parsedTop > 0) {
+      topN = parsedTop;
+    }
+  }
 
   return {
     targetPath: resolve(targetPath),
-    mode: options.mode,
+    mode: options.mode ?? 'all',
     file: options.file,
-    verbose: options.verbose,
+    verbose: options.verbose ?? false,
     topN,
-    json: options.json,
+    json: options.json ?? false,
     provider,
     model,
     ignore: config.ignore,
