@@ -3,11 +3,16 @@
  * Coordinates file discovery, chunking, agent execution, and output rendering.
  */
 
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { loadConfig } from '../../config/schema.js';
 import type { Config } from '../../config/defaults.js';
-import { providerDefaults, detectProvider } from '../../providers/index.js';
+import { providerDefaults, detectProvider, createProvider } from '../../providers/index.js';
 import type { DetectedProvider } from '../../providers/index.js';
+import { discoverFiles } from '../../core/file-discovery.js';
+import { chunkFile } from '../../core/chunker.js';
+import type { Chunk } from '../../core/chunker.js';
+import { runAgent, getBuiltInAgentPaths } from '../../agents/runner.js';
 
 /**
  * CLI options passed from commander to the analyze command.
@@ -130,8 +135,79 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     }
   }
 
+  // Exit early if no provider detected
+  if (!detected) {
+    console.log(
+      'No LLM provider detected. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or use --provider to configure.',
+    );
+    return;
+  }
+
+  // Create the LLM provider instance
+  const provider = createProvider(detected.provider, detected.model);
+
+  // Discover files in the target project
   console.log('');
-  console.log('Analysis engine not yet implemented \u2014 coming in later phases.');
+  console.log('Discovering files...');
+  const files = await discoverFiles(resolved.targetPath, resolved.ignore, resolved.maxFileSize);
+
+  if (files.length === 0) {
+    console.log('No analyzable files found. Check your ignore patterns.');
+    return;
+  }
+
+  console.log(`Found ${files.length} file(s). Chunking...`);
+
+  // Chunk all discovered files
+  const chunks = new Map<string, Chunk[]>();
+  for (const file of files) {
+    const content = await readFile(file.path, 'utf-8');
+    chunks.set(file.path, chunkFile(content, file.path));
+  }
+
+  // Resolve built-in agent paths
+  const agentPaths = getBuiltInAgentPaths();
+  // Add any custom agents from config
+  const allAgentPaths = [...agentPaths, ...resolved.customAgents.map((p) => resolve(p))];
+
+  console.log(`Running ${allAgentPaths.length} agent(s)...`);
+  console.log('');
+
+  // Run all Stage 1 agents in parallel (dependency mapper, teachability scorer, structure analyzer)
+  // Stage 2 (impact ranker) requires Stage 1 outputs — handled in Phase 5 when agent definitions are complete
+  const stage1Paths = allAgentPaths.slice(0, 3); // dependency-mapper, teachability-scorer, structure-analyzer
+  const stage1Results = await Promise.all(
+    stage1Paths.map((agentPath) =>
+      runAgent({
+        agentPath,
+        files,
+        chunks,
+        projectPath: resolved.targetPath,
+        provider,
+        model: detected.model,
+      }),
+    ),
+  );
+
+  // Print results summary
+  for (const result of stage1Results) {
+    console.log(`Agent: ${result.agentName}`);
+    console.log(
+      `Tokens: ${result.tokenUsage.inputTokens} in / ${result.tokenUsage.outputTokens} out`,
+    );
+    if (resolved.verbose) {
+      console.log('Raw output:');
+      console.log(result.rawContent);
+    }
+    if (resolved.json) {
+      console.log(JSON.stringify(result.output, null, 2));
+    } else {
+      console.log(`Output keys: ${Object.keys(result.output).join(', ')}`);
+    }
+    console.log('');
+  }
+
+  console.log('Analysis complete. Full rendering coming in Phase 6.');
 }
 
 // Re-export providerDefaults for callers that need the model map
