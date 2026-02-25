@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-02-25T21:10:00.000Z"
+last_updated: "2026-02-25T21:45:00.000Z"
 progress:
   total_phases: 7
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 4
+  total_plans: 14
+  completed_plans: 8
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 4 (Agent Framework) — Plan 04-01 complete; ready for Plan 04-02 (runner.ts)
+**Current focus:** Phase 5 (Agent Definitions & Dependency Graph) — Phase 4 complete
 
 ## Current Position
 
-Phase: 4 of 7 (Agent Framework) — Plan 04-01 complete, Plan 04-02 pending
-Last activity: 2026-02-25 — Plan 04-01 executed (agents/context.ts implemented: buildContext, buildProjectTree, estimateTokens, getContextLimit, MODEL_CONTEXT_LIMITS)
+Phase: 4 of 7 (Agent Framework) — Phase complete (Plans 04-01 and 04-02 done)
+Last activity: 2026-02-25 — Plan 04-02 executed (agents/runner.ts implemented: parseAgentMarkdown, buildSystemPrompt, runAgent, getBuiltInAgentPaths; four stub agent .md files created; analyze.ts wired to full pipeline)
 
-Progress: [█████░░░░░] ~30%
+Progress: [████████░░] ~40%
 
 ## Performance Metrics
 
@@ -41,10 +41,10 @@ Progress: [█████░░░░░] ~30%
 | 1. Project Scaffold & CLI | 2/2 | ~30 min | ~15 min |
 | 2. File Discovery & Chunking | 2/2 | ~35 min | ~17 min |
 | 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
-| 4. Agent Framework | 1/2 | ~18 min | ~18 min |
+| 4. Agent Framework | 2/2 | ~38 min | ~19 min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (complete), 03-01 (complete), 03-02 (complete), 04-01 (complete)
+- Last 5 plans: 03-01 (complete), 03-02 (complete), 04-01 (complete), 04-02 (complete)
 - Trend: On track
 
 *Updated after each plan completion*
@@ -78,6 +78,11 @@ Recent decisions affecting current work:
 - context.ts: 80% of model context limit reserved for content (20% buffer for system prompt + output tokens)
 - context.ts: Three-level priority truncation: full -> summarized (20 lines) -> name-only -> omitted (greedy, Phase 5 handles importance ordering)
 - context.ts: PROJECT STRUCTURE tree always first in output; DEPENDENCY MAP placed between tree and file content when importMap present
+- runner.ts: parseAgentMarkdown uses regex walker (/^##\s+(.+)$/gm) — no markdown library; machine-consistent format
+- runner.ts: retry strategy — 1 retry with STRICT_JSON_SUFFIX + temperature 0.1; empty {} with console.warn after two failures
+- runner.ts: getBuiltInAgentPaths uses import.meta.url + dirname; navigates dist/agents/ → ../../agents/definitions/
+- analyze.ts: Stage 1 agents run in parallel via Promise.all; Stage 2 impact ranker deferred to Phase 5
+- analyze.ts: exits early with clear message when no provider detected or no files found
 
 ### Pending Todos
 
@@ -90,6 +95,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Phase 4 Plan 04-01 complete — agents/context.ts fully implemented with all exports (buildContext, buildProjectTree, estimateTokens, getContextLimit, MODEL_CONTEXT_LIMITS, ContextBuildOptions); all checks passing
-Resume file: .planning/phases/04-agent-framework/04-01-SUMMARY.md
-Next: Phase 4 Plan 04-02 (runner.ts + analyze.ts wiring) — depends on Plan 04-01 (runner imports buildContext from context.ts)
+Stopped at: Phase 4 complete — agents/runner.ts fully implemented (parseAgentMarkdown, buildSystemPrompt, runAgent with retry, getBuiltInAgentPaths); four stub agent .md files created in agents/definitions/; analyze.ts wired to full file discovery + chunking + agent pipeline; all checks passing
+Resume file: .planning/phases/04-agent-framework/04-02-SUMMARY.md
+Next: Phase 5 Plan 05-01 (dependency-mapper.md and teachability-scorer.md agent definitions with full prompts)

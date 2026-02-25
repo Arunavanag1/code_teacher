@@ -14,8 +14,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Project Scaffold & CLI** - TypeScript project setup, CLI framework with all flags, config schema
 - [x] **Phase 2: File Discovery & Chunking** - Directory walker, gitignore handling, logical file chunking
-- [ ] **Phase 3: LLM Provider System** - Provider abstraction, three SDK integrations, auto-detection logic
-- [ ] **Phase 4: Agent Framework** - Markdown agent parser, runner, context builder with token management
+- [x] **Phase 3: LLM Provider System** - Provider abstraction, three SDK integrations, auto-detection logic
+- [x] **Phase 4: Agent Framework** - Markdown agent parser, runner, context builder with token management
 - [ ] **Phase 5: Agent Definitions & Dependency Graph** - Four agent markdown files, dependency graph, two-stage pipeline
 - [ ] **Phase 6: Terminal Output & Caching** - ANSI formatter, three output modes, content-hash cache
 - [ ] **Phase 7: Hardening & Extended Features** - Error handling, watch mode, init command, custom agents, real-world testing
@@ -82,8 +82,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Implement context.ts — context window builder with token counting and priority-based truncation
-- [ ] 04-02: Implement runner.ts — markdown agent parser, prompt construction, LLM call orchestration with retries, agent stubs, and analyze.ts wiring
+- [x] 04-01: Implement context.ts — context window builder with token counting and priority-based truncation
+- [x] 04-02: Implement runner.ts — markdown agent parser, prompt construction, LLM call orchestration with retries, agent stubs, and analyze.ts wiring
 
 ### Phase 5: Agent Definitions & Dependency Graph
 **Goal**: All four agents produce scored, reasoned analysis; dependency graph enables impact queries
@@ -150,8 +150,8 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 |-------|----------------|--------|-----------|
 | 1. Project Scaffold & CLI | 2/2 | Complete | 2026-02-25 |
 | 2. File Discovery & Chunking | 2/2 | Complete | 2026-02-25 |
-| 3. LLM Provider System | 1/2 | In Progress | - |
-| 4. Agent Framework | 0/2 | Not started | - |
+| 3. LLM Provider System | 2/2 | Complete | 2026-02-25 |
+| 4. Agent Framework | 2/2 | Complete | 2026-02-25 |
 | 5. Agent Definitions & Dependency Graph | 0/3 | Not started | - |
 | 6. Terminal Output & Caching | 0/3 | Not started | - |
 | 7. Hardening & Extended Features | 0/3 | Not started | - |
