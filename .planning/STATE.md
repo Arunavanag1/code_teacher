@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-02-25T21:14:49.000Z"
+last_updated: "2026-02-25T21:21:08.000Z"
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 14
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -18,20 +18,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 5 (Agent Definitions & Dependency Graph) — Plan 05-01 complete, 2 plans remaining
+**Current focus:** Phase 5 (Agent Definitions & Dependency Graph) — Plans 05-01 and 05-03 complete, 05-02 in progress
 
 ## Current Position
 
-Phase: 5 of 7 (Agent Definitions & Dependency Graph) — Plan 05-01 complete (1/3 plans done)
-Last activity: 2026-02-25 — Plan 05-01 executed (dependency-mapper.md and teachability-scorer.md replaced with production-quality agent definitions featuring enriched output schemas, detailed scoring rubrics, and worked examples)
+Phase: 5 of 7 (Agent Definitions & Dependency Graph) — Plans 05-01 and 05-03 complete (2/3 plans done)
+Last activity: 2026-02-25 — Plan 05-03 executed (dependency-graph.ts fully implemented with buildGraph constructor and 5 graph query algorithms)
 
-Progress: [█████████░] ~50%
+Progress: [██████████░] ~57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~14 min
+- Total plans completed: 10
+- Average duration: ~13 min
 - Total execution time: ~1.5 hours
 
 **By Phase:**
@@ -42,10 +42,10 @@ Progress: [█████████░] ~50%
 | 2. File Discovery & Chunking | 2/2 | ~35 min | ~17 min |
 | 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
 | 4. Agent Framework | 2/2 | ~38 min | ~19 min |
-| 5. Agent Definitions & Dependency Graph | 1/3 | ~3 min | ~3 min |
+| 5. Agent Definitions & Dependency Graph | 2/3 | ~6 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (complete), 04-01 (complete), 04-02 (complete), 05-01 (complete)
+- Last 5 plans: 04-01 (complete), 04-02 (complete), 05-01 (complete), 05-03 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -88,6 +88,12 @@ Recent decisions affecting current work:
 - dependency-mapper.md: centrality formula uses weighted combination (fanIn * 0.6 + fanOut * 0.4) -- being depended on weighted higher
 - teachability-scorer.md: 5-criterion rubric (conceptualDensity, clarity, transferability, novelty, selfContainment) with worked examples at score 2, 5, 9
 - teachability-scorer.md: returns 3-15 sections ranked by overall score descending, each with concepts and prerequisites arrays
+- dependency-graph.ts: buildGraph populates language from file extension and lineCount from FileInfo (not LLM) for reliability
+- dependency-graph.ts: getImpactScore uses BFS downstream reach normalized to 0-10 (reachableCount / (totalNodes - 1) * 10)
+- dependency-graph.ts: getCentrality uses weighted degree approximation (W_IN=0.6, W_OUT=0.4) instead of O(V*E) Brandes -- sufficient for CLI-scale codebases
+- dependency-graph.ts: getBottlenecks uses iterative Tarjan's articulation points (explicit stack, not recursive) on undirected graph
+- dependency-graph.ts: getCluster uses undirected BFS connected components (not SCC) per research recommendation
+- dependency-graph.ts: all algorithms O(V+E), pure TypeScript, no external graph library dependencies
 
 ### Pending Todos
 
@@ -100,6 +106,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Plan 05-01 complete — dependency-mapper.md and teachability-scorer.md replaced with production-quality agent definitions (enriched output schemas, detailed scoring rubrics, worked examples)
-Resume file: .planning/phases/05-agent-definitions-dependency-graph/05-01-SUMMARY.md
-Next: Phase 5 Plan 05-02 (structure-analyzer.md and impact-ranker.md agent definitions + two-stage pipeline wiring)
+Stopped at: Plan 05-03 complete — dependency-graph.ts fully implemented with buildGraph constructor and 5 graph query algorithms (getEntryPoints, getImpactScore, getCentrality, getCluster, getBottlenecks)
+Resume file: .planning/phases/05-agent-definitions-dependency-graph/05-03-SUMMARY.md
+Next: Plan 05-02 (structure-analyzer.md and impact-ranker.md + two-stage pipeline wiring) — running in parallel
