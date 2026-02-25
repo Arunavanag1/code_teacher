@@ -153,9 +153,54 @@ export function buildGraph(
   return graph;
 }
 
-export function getImpactScore(_graph: DependencyGraph, _nodeId: string): number {
-  // TODO: Implement in Phase 5
-  return 0;
+/**
+ * Calculates how many nodes are reachable downstream from the given node.
+ * Uses BFS following directed edges (source -> target).
+ * Returns a normalized score from 0 to 10.
+ *
+ * Score formula: (reachableCount / (totalNodes - 1)) * 10
+ * A node that can reach every other node scores 10.
+ * A leaf node with no outgoing edges scores 0.
+ *
+ * Algorithm: O(V + E) -- standard BFS.
+ */
+export function getImpactScore(graph: DependencyGraph, nodeId: string): number {
+  if (!graph.nodes.has(nodeId)) return 0;
+
+  const totalNodes = graph.nodes.size;
+  if (totalNodes <= 1) return 0;
+
+  // Build directed adjacency list (source -> [targets])
+  const adjacency = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    if (!adjacency.has(edge.source)) {
+      adjacency.set(edge.source, []);
+    }
+    adjacency.get(edge.source)!.push(edge.target);
+  }
+
+  // BFS from nodeId
+  const visited = new Set<string>();
+  const queue: string[] = [nodeId];
+  visited.add(nodeId);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const neighbors = adjacency.get(current) ?? [];
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  // Reachable count excludes the start node itself
+  const reachableCount = visited.size - 1;
+
+  // Normalize to 0-10 scale
+  const score = (reachableCount / (totalNodes - 1)) * 10;
+  return Math.round(score * 10) / 10; // Round to 1 decimal place
 }
 
 export function getCentrality(_graph: DependencyGraph, _nodeId: string): number {
@@ -173,7 +218,34 @@ export function getCluster(_graph: DependencyGraph, _nodeId: string): string[] {
   return [];
 }
 
-export function getEntryPoints(_graph: DependencyGraph): string[] {
-  // TODO: Implement in Phase 5
-  return [];
+/**
+ * Returns node IDs with zero in-degree (no incoming edges).
+ * Entry points are files that nothing else depends on -- typically main/index files,
+ * CLI entry points, or test files.
+ *
+ * Algorithm: O(E) -- iterate all edges to build in-degree counts,
+ * then return nodes with count 0.
+ */
+export function getEntryPoints(graph: DependencyGraph): string[] {
+  // Build in-degree map (all nodes start at 0)
+  const inDegree = new Map<string, number>();
+  for (const nodeId of graph.nodes.keys()) {
+    inDegree.set(nodeId, 0);
+  }
+
+  // Count incoming edges for each target
+  for (const edge of graph.edges) {
+    const current = inDegree.get(edge.target) ?? 0;
+    inDegree.set(edge.target, current + 1);
+  }
+
+  // Collect nodes with zero in-degree
+  const entryPoints: string[] = [];
+  for (const [nodeId, degree] of inDegree) {
+    if (degree === 0) {
+      entryPoints.push(nodeId);
+    }
+  }
+
+  return entryPoints;
 }
