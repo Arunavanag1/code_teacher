@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 1 complete; ready for Phase 2 or Phase 3
+**Current focus:** Phase 3 in progress — Plan 03-01 complete; ready for Plan 03-02 (concrete provider implementations)
 
 ## Current Position
 
-Phase: 1 of 7 (Project Scaffold & CLI) — COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-25 — Plan 01-02 executed (CLI framework with commander, all flags, config integration)
+Phase: 3 of 7 (LLM Provider System) — IN PROGRESS
+Plan: 1 of 2 in current phase
+Status: Plan 03-01 complete
+Last activity: 2026-02-25 — Plan 03-01 executed (LLM provider interface, detection logic, factory, SDK installs, analyze.ts refactor)
 
 Progress: [██░░░░░░░░] ~12%
 
@@ -28,9 +28,10 @@ Progress: [██░░░░░░░░] ~12%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Project Scaffold & CLI | 2/2 | ~30 min | ~15 min |
+| 3. LLM Provider System | 1/2 | ~20 min | ~20 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (complete), 01-02 (complete)
+- Last 5 plans: 01-01 (complete), 01-02 (complete), 03-01 (complete)
 - Trend: On track
 
 *Updated after each plan completion*
@@ -49,6 +50,10 @@ Recent decisions affecting current work:
 - No commander defaults for config-overridable options — allows config file values to take effect when CLI flag not passed
 - Boolean CLI flags typed as `true | undefined` (commander sets true when present, undefined when absent)
 - Provider auto-detection in analyze command (not index.ts) — depends on config loading which requires target path
+- detectProvider() called once in analyzeCommand and result passed into mergeConfig (avoids double-detection, source available for startup message)
+- providerDefaults canonical source is providers/index.ts; analyze.ts re-exports it for backward compatibility
+- createProvider() stubs throw "not yet implemented"; real implementations in Plan 03-02
+- Model defaults updated: claude-sonnet-4-6 (Anthropic), gpt-4o (OpenAI), gemini-2.0-flash (Google)
 
 ### Pending Todos
 
@@ -61,6 +66,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Phase 1 complete — CLI framework fully functional with all flags, config loading, and provider detection
-Resume file: .planning/phases/01-project-scaffold-cli/01-02-SUMMARY.md
-Next: Phase 2 (File Discovery & Chunking) or Phase 3 (LLM Provider System) — both can proceed independently
+Stopped at: Phase 3, Plan 03-01 complete — provider interface, detection logic, factory, all SDKs installed, analyze.ts refactored
+Resume file: .planning/phases/03-llm-provider-system/03-01-SUMMARY.md
+Next: Plan 03-02 (concrete provider implementations: AnthropicProvider, OpenAIProvider, GoogleProvider)
