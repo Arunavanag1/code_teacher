@@ -11,7 +11,11 @@ export class GoogleProvider implements LLMProvider {
     this.model = model;
   }
 
-  async call(systemPrompt: string, userPrompt: string, options?: CallOptions): Promise<LLMResponse> {
+  async call(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: CallOptions,
+  ): Promise<LLMResponse> {
     const temperature = options?.temperature ?? 0.2;
 
     const response = await this.ai.models.generateContent({
@@ -21,9 +25,7 @@ export class GoogleProvider implements LLMProvider {
         systemInstruction: systemPrompt,
         temperature,
         maxOutputTokens: options?.maxTokens ?? 8096,
-        ...(options?.responseFormat === 'json'
-          ? { responseMimeType: 'application/json' }
-          : {}),
+        ...(options?.responseFormat === 'json' ? { responseMimeType: 'application/json' } : {}),
       },
     });
 

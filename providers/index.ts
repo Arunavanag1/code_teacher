@@ -11,10 +11,11 @@
  *   3. Config file provider setting
  *   4. Auto-detect from API keys: ANTHROPIC_API_KEY → OPENAI_API_KEY → GOOGLE_API_KEY
  *   5. No provider found (returns undefined)
- *
- * Concrete provider implementations (AnthropicProvider, OpenAIProvider, GoogleProvider)
- * will be added in Plan 03-02 and wired into createProvider() at that time.
  */
+
+import { AnthropicProvider } from './anthropic.js';
+import { OpenAIProvider } from './openai.js';
+import { GoogleProvider } from './google.js';
 
 // ---------------------------------------------------------------------------
 // Spec-exact interfaces
@@ -180,12 +181,8 @@ export function detectProvider(
  * Validates that the provider is known and that the required API key env var
  * is set before attempting to construct the provider. Throws ProviderDetectionError
  * with a clear message if either check fails.
- *
- * NOTE: Concrete implementations (AnthropicProvider, OpenAIProvider, GoogleProvider)
- * will be wired in here during Plan 03-02. The switch cases currently throw
- * "not yet implemented" errors as placeholders.
  */
-export function createProvider(providerName: string, _model: string): LLMProvider {
+export function createProvider(providerName: string, model: string): LLMProvider {
   const envVarName = providerApiKeyEnvVars[providerName];
 
   if (!envVarName) {
@@ -201,18 +198,13 @@ export function createProvider(providerName: string, _model: string): LLMProvide
     );
   }
 
-  // Concrete implementations will be imported and instantiated here in Plan 03-02.
-  // For now, throw a not-yet-implemented error so the factory compiles.
   switch (providerName) {
     case 'anthropic':
-      // Will import and return new AnthropicProvider(apiKey, model) in 03-02
-      throw new Error('Anthropic provider not yet implemented — coming in Plan 03-02.');
+      return new AnthropicProvider(apiKey, model);
     case 'openai':
-      // Will import and return new OpenAIProvider(apiKey, model) in 03-02
-      throw new Error('OpenAI provider not yet implemented — coming in Plan 03-02.');
+      return new OpenAIProvider(apiKey, model);
     case 'google':
-      // Will import and return new GoogleProvider(apiKey, model) in 03-02
-      throw new Error('Google provider not yet implemented — coming in Plan 03-02.');
+      return new GoogleProvider(apiKey, model);
     default:
       throw new ProviderDetectionError(
         `Unknown provider '${providerName}'. Supported providers: anthropic, openai, google.`,

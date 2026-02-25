@@ -11,7 +11,11 @@ export class OpenAIProvider implements LLMProvider {
     this.model = model;
   }
 
-  async call(systemPrompt: string, userPrompt: string, options?: CallOptions): Promise<LLMResponse> {
+  async call(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: CallOptions,
+  ): Promise<LLMResponse> {
     const temperature = options?.temperature ?? 0.2;
 
     // OpenAI has native JSON mode via response_format.

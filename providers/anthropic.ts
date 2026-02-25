@@ -11,7 +11,11 @@ export class AnthropicProvider implements LLMProvider {
     this.model = model;
   }
 
-  async call(systemPrompt: string, userPrompt: string, options?: CallOptions): Promise<LLMResponse> {
+  async call(
+    systemPrompt: string,
+    userPrompt: string,
+    options?: CallOptions,
+  ): Promise<LLMResponse> {
     const temperature = options?.temperature ?? 0.2;
 
     // Anthropic has no native JSON mode — use prompt engineering
