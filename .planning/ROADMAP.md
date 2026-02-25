@@ -50,7 +50,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Implement file-discovery.ts — directory walker with gitignore, config ignores, binary filtering, size limits
+- [x] 02-01: Implement file-discovery.ts — directory walker with gitignore, config ignores, binary filtering, size limits
 - [ ] 02-02: Implement chunker.ts — logical boundary splitting, 20-line overlap, chunk metadata
 
 ### Phase 3: LLM Provider System
@@ -149,8 +149,8 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Project Scaffold & CLI | 2/2 | Complete | 2026-02-25 |
-| 2. File Discovery & Chunking | 0/2 | Not started | - |
-| 3. LLM Provider System | 0/2 | Not started | - |
+| 2. File Discovery & Chunking | 1/2 | In Progress | - |
+| 3. LLM Provider System | 1/2 | In Progress | - |
 | 4. Agent Framework | 0/2 | Not started | - |
 | 5. Agent Definitions & Dependency Graph | 0/3 | Not started | - |
 | 6. Terminal Output & Caching | 0/3 | Not started | - |
