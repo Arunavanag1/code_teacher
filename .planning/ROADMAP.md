@@ -12,7 +12,7 @@ Build a CLI codebase analysis tool from the ground up: scaffold the TypeScript p
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Project Scaffold & CLI** - TypeScript project setup, CLI framework with all flags, config schema
+- [x] **Phase 1: Project Scaffold & CLI** - TypeScript project setup, CLI framework with all flags, config schema
 - [ ] **Phase 2: File Discovery & Chunking** - Directory walker, gitignore handling, logical file chunking
 - [ ] **Phase 3: LLM Provider System** - Provider abstraction, three SDK integrations, auto-detection logic
 - [ ] **Phase 4: Agent Framework** - Markdown agent parser, runner, context builder with token management
@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01: Initialize TypeScript project with tsconfig, ESLint, Prettier, and package.json for GitHub distribution
-- [ ] 01-02: Implement CLI framework with commander/yargs, all flags, and config schema validation
+- [x] 01-02: Implement CLI framework with commander/yargs, all flags, and config schema validation
 
 ### Phase 2: File Discovery & Chunking
 **Goal**: Given a path, produce a list of analyzable file chunks ready for LLM consumption
@@ -148,7 +148,7 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Project Scaffold & CLI | 1/2 | In progress | - |
+| 1. Project Scaffold & CLI | 2/2 | Complete | 2026-02-25 |
 | 2. File Discovery & Chunking | 0/2 | Not started | - |
 | 3. LLM Provider System | 0/2 | Not started | - |
 | 4. Agent Framework | 0/2 | Not started | - |
