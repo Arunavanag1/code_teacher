@@ -6,4 +6,14 @@
  * and data structure decisions.
  */
 
-console.log('code-teacher v0.1.0');
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const require = createRequire(import.meta.url);
+const pkg = require(join(__dirname, '..', '..', 'package.json')) as { version: string };
+
+console.log(`code-teacher v${pkg.version}`);
