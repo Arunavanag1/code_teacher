@@ -266,9 +266,47 @@ export function getBottlenecks(_graph: DependencyGraph): string[] {
   return [];
 }
 
-export function getCluster(_graph: DependencyGraph, _nodeId: string): string[] {
-  // TODO: Implement in Phase 5
-  return [];
+/**
+ * Returns the tightly-coupled cluster (connected component) containing the given node.
+ * Uses undirected BFS -- treats all directed edges as bidirectional to find the
+ * full set of nodes reachable from nodeId when direction is ignored.
+ *
+ * Nodes in the same connected component are structurally related:
+ * they share direct or transitive dependencies regardless of direction.
+ *
+ * Algorithm: O(V + E) -- standard BFS on undirected adjacency.
+ */
+export function getCluster(graph: DependencyGraph, nodeId: string): string[] {
+  if (!graph.nodes.has(nodeId)) return [];
+
+  // Build undirected adjacency list (both directions for each edge)
+  const undirected = new Map<string, Set<string>>();
+  for (const id of graph.nodes.keys()) {
+    undirected.set(id, new Set());
+  }
+
+  for (const edge of graph.edges) {
+    undirected.get(edge.source)?.add(edge.target);
+    undirected.get(edge.target)?.add(edge.source);
+  }
+
+  // BFS from nodeId in undirected graph
+  const visited = new Set<string>();
+  const queue: string[] = [nodeId];
+  visited.add(nodeId);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const neighbors = undirected.get(current) ?? new Set();
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        visited.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  return [...visited];
 }
 
 /**
