@@ -203,9 +203,62 @@ export function getImpactScore(graph: DependencyGraph, nodeId: string): number {
   return Math.round(score * 10) / 10; // Round to 1 decimal place
 }
 
-export function getCentrality(_graph: DependencyGraph, _nodeId: string): number {
-  // TODO: Implement in Phase 5
-  return 0;
+/**
+ * Approximates betweenness centrality using weighted in-degree + out-degree.
+ *
+ * True betweenness centrality is O(V*E) (Brandes algorithm). For a CLI tool
+ * analyzing typical codebases (50-500 files), an in/out-degree approximation
+ * is sufficient and much faster.
+ *
+ * Formula: centrality = (fanIn * w_in + fanOut * w_out) / (maxFanIn * w_in + maxFanOut * w_out) * 10
+ * Where w_in = 0.6 (being depended on is more central) and w_out = 0.4.
+ *
+ * This gives higher scores to nodes that are both widely depended upon and
+ * depend on many others (true hubs), while still recognizing pure sinks
+ * (high fan-in, low fan-out) as important.
+ *
+ * Algorithm: O(E) -- one pass to count in/out degrees, then O(V) to find max.
+ */
+export function getCentrality(graph: DependencyGraph, nodeId: string): number {
+  if (!graph.nodes.has(nodeId)) return 0;
+  if (graph.nodes.size === 0) return 0;
+
+  const W_IN = 0.6;
+  const W_OUT = 0.4;
+
+  // Count in-degree and out-degree for all nodes
+  const inDegree = new Map<string, number>();
+  const outDegree = new Map<string, number>();
+
+  for (const id of graph.nodes.keys()) {
+    inDegree.set(id, 0);
+    outDegree.set(id, 0);
+  }
+
+  for (const edge of graph.edges) {
+    inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
+    outDegree.set(edge.source, (outDegree.get(edge.source) ?? 0) + 1);
+  }
+
+  // Find max in-degree and max out-degree across all nodes
+  let maxIn = 0;
+  let maxOut = 0;
+  for (const id of graph.nodes.keys()) {
+    maxIn = Math.max(maxIn, inDegree.get(id) ?? 0);
+    maxOut = Math.max(maxOut, outDegree.get(id) ?? 0);
+  }
+
+  // If there are no edges, everyone has centrality 0
+  const maxWeighted = maxIn * W_IN + maxOut * W_OUT;
+  if (maxWeighted === 0) return 0;
+
+  // Compute centrality for the target node
+  const nodeIn = inDegree.get(nodeId) ?? 0;
+  const nodeOut = outDegree.get(nodeId) ?? 0;
+  const nodeWeighted = nodeIn * W_IN + nodeOut * W_OUT;
+
+  const score = (nodeWeighted / maxWeighted) * 10;
+  return Math.round(score * 10) / 10; // Round to 1 decimal place
 }
 
 export function getBottlenecks(_graph: DependencyGraph): string[] {
