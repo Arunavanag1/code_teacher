@@ -122,6 +122,11 @@ export function chunkFile(content: string, filePath: string): Chunk[] {
 
     chunkIndex++;
 
+    // If we reached the end of the file, stop
+    if (end >= totalLines) {
+      break;
+    }
+
     // Calculate next start with overlap
     const nextStart = end - OVERLAP;
 
