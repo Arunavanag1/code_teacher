@@ -5,13 +5,12 @@
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 2 COMPLETE (both plans done); Phase 3 Plan 03-01 complete (provider interface), Plan 03-02 pending
+**Current focus:** Phase 3 COMPLETE (both plans done); ready for Phase 4 (Agent Framework)
 
 ## Current Position
 
-Phase: 2 of 7 (File Discovery & Chunking) — COMPLETE (Plan 02-01: file-discovery.ts, Plan 02-02: chunker.ts)
-Phase: 3 of 7 (LLM Provider System) — IN PROGRESS (Plan 03-01 complete, Plan 03-02 pending)
-Last activity: 2026-02-25 — Plan 02-02 executed (chunker.ts: language-agnostic boundary detection, 20-line overlap, forward progress guarantee)
+Phase: 3 of 7 (LLM Provider System) — COMPLETE (Plan 03-01: interfaces + factory, Plan 03-02: concrete SDK implementations)
+Last activity: 2026-02-25 — Plan 03-02 executed (AnthropicProvider, OpenAIProvider, GoogleProvider implemented; factory wired to real instances)
 
 Progress: [████░░░░░░] ~25%
 
@@ -28,10 +27,10 @@ Progress: [████░░░░░░] ~25%
 |-------|-------|-------|----------|
 | 1. Project Scaffold & CLI | 2/2 | ~30 min | ~15 min |
 | 2. File Discovery & Chunking | 2/2 | ~35 min | ~17 min |
-| 3. LLM Provider System | 1/2 | ~20 min | ~20 min |
+| 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (complete), 01-02 (complete), 02-01 (complete), 03-01 (complete), 02-02 (complete)
+- Last 5 plans: 01-02 (complete), 02-01 (complete), 02-02 (complete), 03-01 (complete), 03-02 (complete)
 - Trend: On track
 
 *Updated after each plan completion*
@@ -52,7 +51,9 @@ Recent decisions affecting current work:
 - Provider auto-detection in analyze command (not index.ts) — depends on config loading which requires target path
 - detectProvider() called once in analyzeCommand and result passed into mergeConfig (avoids double-detection, source available for startup message)
 - providerDefaults canonical source is providers/index.ts; analyze.ts re-exports it for backward compatibility
-- createProvider() stubs throw "not yet implemented"; real implementations in Plan 03-02
+- createProvider() returns real AnthropicProvider/OpenAIProvider/GoogleProvider instances (Plan 03-02 complete)
+- Anthropic JSON mode: prompt engineering; OpenAI: response_format json_object; Google: responseMimeType application/json
+- GoogleProvider tracks model from constructor (response object does not include model name)
 - Model defaults updated: claude-sonnet-4-6 (Anthropic), gpt-4o (OpenAI), gemini-2.0-flash (Google)
 - file-discovery: reads .gitignore from project root only (spec requirement); subdirectory .gitignore files not walked
 - file-discovery: isBinary uses buffer.subarray() (not deprecated slice()); checks first 512 bytes for null byte
@@ -71,6 +72,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Phase 2 complete — chunker.ts fully implemented with language-agnostic boundary detection, 20-line overlap, all smoke tests passing
-Resume file: .planning/phases/02-file-discovery-chunking/02-02-SUMMARY.md
-Next: Plan 03-02 (concrete provider implementations: AnthropicProvider, OpenAIProvider, GoogleProvider)
+Stopped at: Phase 3 complete — all three LLM provider classes implemented (AnthropicProvider, OpenAIProvider, GoogleProvider), factory wired, all checks passing
+Resume file: .planning/phases/03-llm-provider-system/03-02-SUMMARY.md
+Next: Phase 4 (Agent Framework) — depends on Phase 2 (file discovery + chunker) and Phase 3 (LLM providers). See ROADMAP.md for Phase 4 plan structure.
