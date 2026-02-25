@@ -6,6 +6,8 @@
 import { resolve } from 'node:path';
 import { loadConfig } from '../../config/schema.js';
 import type { Config } from '../../config/defaults.js';
+import { providerDefaults, detectProvider } from '../../providers/index.js';
+import type { DetectedProvider } from '../../providers/index.js';
 
 /**
  * CLI options passed from commander to the analyze command.
@@ -40,69 +42,23 @@ export interface ResolvedConfig {
 }
 
 /**
- * Default models for each known provider.
- */
-const providerDefaults: Record<string, string> = {
-  anthropic: 'claude-sonnet-4-20250514',
-  openai: 'gpt-4o',
-  google: 'gemini-pro',
-};
-
-/**
- * Auto-detects the LLM provider from environment variables.
- * Detection order per spec:
- *   1. CODE_TEACHER_PROVIDER / CODE_TEACHER_MODEL env vars
- *   2. ANTHROPIC_API_KEY -> Anthropic
- *   3. OPENAI_API_KEY -> OpenAI
- *   4. GOOGLE_API_KEY -> Google
- */
-function autoDetectProvider(): { provider: string; model: string; source: string } | undefined {
-  if (process.env.CODE_TEACHER_PROVIDER) {
-    const provider = process.env.CODE_TEACHER_PROVIDER;
-    const model = process.env.CODE_TEACHER_MODEL ?? providerDefaults[provider] ?? 'default';
-    return { provider, model, source: 'CODE_TEACHER_PROVIDER env' };
-  }
-  if (process.env.ANTHROPIC_API_KEY) {
-    return {
-      provider: 'anthropic',
-      model: providerDefaults.anthropic,
-      source: 'ANTHROPIC_API_KEY',
-    };
-  }
-  if (process.env.OPENAI_API_KEY) {
-    return { provider: 'openai', model: providerDefaults.openai, source: 'OPENAI_API_KEY' };
-  }
-  if (process.env.GOOGLE_API_KEY) {
-    return { provider: 'google', model: providerDefaults.google, source: 'GOOGLE_API_KEY' };
-  }
-  return undefined;
-}
-
-/**
- * Determines the source of the provider setting for the startup message.
- */
-function detectProviderSource(
-  cliProvider: string | undefined,
-  configProvider: string | undefined,
-): string {
-  if (cliProvider) return 'CLI flag';
-  if (configProvider) return 'config file';
-  const autoDetected = autoDetectProvider();
-  return autoDetected?.source ?? 'none';
-}
-
-/**
  * Merges CLI options over loaded config values. CLI flags always win.
- * Resolution order: CLI flag > config file > env auto-detection > hardcoded defaults
+ * Resolution order: CLI flag > config file > env auto-detection > hardcoded defaults.
  *
  * When a CLI option is undefined, it means the user did not pass that flag,
  * so we fall through to config file value, then to hardcoded defaults.
+ *
+ * The detected parameter is the result of detectProvider() called before mergeConfig,
+ * so detection runs only once and the source is available for the startup message.
  */
-function mergeConfig(config: Config, options: AnalyzeOptions, targetPath: string): ResolvedConfig {
-  const autoDetected = autoDetectProvider();
-
-  const provider = options.provider ?? config.provider ?? autoDetected?.provider;
-  const model = options.model ?? config.model ?? autoDetected?.model;
+function mergeConfig(
+  config: Config,
+  options: AnalyzeOptions,
+  targetPath: string,
+  detected: DetectedProvider | undefined,
+): ResolvedConfig {
+  const provider = detected?.provider;
+  const model = detected?.model;
 
   // Parse --top as integer only when user explicitly passed it; otherwise use config value
   let topN = config.topN;
@@ -137,16 +93,16 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Load config from the target project path
   const config = loadConfig(path);
 
-  // Merge CLI options over config values (CLI wins)
-  const resolved = mergeConfig(config, options, path);
+  // Detect provider once — CLI flag > CODE_TEACHER_PROVIDER env > config file > API key auto-detect
+  const detected = detectProvider(options.provider, options.model, config.provider, config.model);
 
-  // Detect source for the provider startup message
-  const source = detectProviderSource(options.provider, config.provider);
+  // Merge CLI options over config values (CLI wins), passing the detected provider
+  const resolved = mergeConfig(config, options, path, detected);
 
   // Print provider detection line per spec
-  if (resolved.provider) {
+  if (detected) {
     console.log(
-      `Using ${resolved.provider} (${resolved.model ?? 'default'}) \u2014 detected from ${source}`,
+      `Using ${detected.provider} (${detected.model}) \u2014 detected from ${detected.source}`,
     );
   } else {
     console.log(
@@ -177,3 +133,6 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   console.log('');
   console.log('Analysis engine not yet implemented \u2014 coming in later phases.');
 }
+
+// Re-export providerDefaults for callers that need the model map
+export { providerDefaults };
