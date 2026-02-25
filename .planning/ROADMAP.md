@@ -13,7 +13,7 @@ Build a CLI codebase analysis tool from the ground up: scaffold the TypeScript p
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Project Scaffold & CLI** - TypeScript project setup, CLI framework with all flags, config schema
-- [ ] **Phase 2: File Discovery & Chunking** - Directory walker, gitignore handling, logical file chunking
+- [x] **Phase 2: File Discovery & Chunking** - Directory walker, gitignore handling, logical file chunking
 - [ ] **Phase 3: LLM Provider System** - Provider abstraction, three SDK integrations, auto-detection logic
 - [ ] **Phase 4: Agent Framework** - Markdown agent parser, runner, context builder with token management
 - [ ] **Phase 5: Agent Definitions & Dependency Graph** - Four agent markdown files, dependency graph, two-stage pipeline
@@ -51,7 +51,7 @@ Plans:
 
 Plans:
 - [x] 02-01: Implement file-discovery.ts — directory walker with gitignore, config ignores, binary filtering, size limits
-- [ ] 02-02: Implement chunker.ts — logical boundary splitting, 20-line overlap, chunk metadata
+- [x] 02-02: Implement chunker.ts — logical boundary splitting, 20-line overlap, chunk metadata
 
 ### Phase 3: LLM Provider System
 **Goal**: Unified interface to call any of three LLM providers with auto-detection
@@ -66,7 +66,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Implement LLMProvider interface, detection logic, and environment variable scanning
+- [x] 03-01: Implement LLMProvider interface, detection logic, and environment variable scanning
 - [ ] 03-02: Implement Anthropic, OpenAI, and Google SDK integrations conforming to provider interface
 
 ### Phase 4: Agent Framework
@@ -149,7 +149,7 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Project Scaffold & CLI | 2/2 | Complete | 2026-02-25 |
-| 2. File Discovery & Chunking | 1/2 | In Progress | - |
+| 2. File Discovery & Chunking | 2/2 | Complete | 2026-02-25 |
 | 3. LLM Provider System | 1/2 | In Progress | - |
 | 4. Agent Framework | 0/2 | Not started | - |
 | 5. Agent Definitions & Dependency Graph | 0/3 | Not started | - |
