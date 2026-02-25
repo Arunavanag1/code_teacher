@@ -1,0 +1,43 @@
+{
+  "name": "code-teacher",
+  "version": "0.1.0",
+  "description": "CLI tool that analyzes codebases to surface teachable sections, high-impact sections, and data structure decisions",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "code-teacher": "dist/cli/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli/index.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "files": [
+    "dist/",
+    "agents/definitions/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/USERNAME/code-teacher.git"
+  },
+  "keywords": [
+    "code-analysis",
+    "teaching",
+    "cli",
+    "llm",
+    "codebase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  }
+}
