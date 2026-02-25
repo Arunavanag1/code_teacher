@@ -261,9 +261,122 @@ export function getCentrality(graph: DependencyGraph, nodeId: string): number {
   return Math.round(score * 10) / 10; // Round to 1 decimal place
 }
 
-export function getBottlenecks(_graph: DependencyGraph): string[] {
-  // TODO: Implement in Phase 5
-  return [];
+/**
+ * Finds bottleneck nodes (articulation points) -- nodes whose removal would
+ * disconnect the graph into separate components.
+ *
+ * Uses Tarjan's articulation point algorithm on the undirected version of
+ * the dependency graph. A node u is an articulation point if:
+ *   - u is the DFS root AND has 2+ children in the DFS tree, OR
+ *   - u is NOT the root AND has a child v where low[v] >= disc[u]
+ *
+ * Algorithm: O(V + E) -- single DFS pass (iterative to avoid stack overflow).
+ */
+export function getBottlenecks(graph: DependencyGraph): string[] {
+  if (graph.nodes.size === 0) return [];
+
+  // Build undirected adjacency list
+  const undirected = new Map<string, Set<string>>();
+  for (const id of graph.nodes.keys()) {
+    undirected.set(id, new Set());
+  }
+
+  for (const edge of graph.edges) {
+    undirected.get(edge.source)?.add(edge.target);
+    undirected.get(edge.target)?.add(edge.source);
+  }
+
+  const disc = new Map<string, number>(); // Discovery time
+  const low = new Map<string, number>(); // Lowest discovery time reachable
+  const parent = new Map<string, string | null>(); // Parent in DFS tree
+  const articulationPoints = new Set<string>();
+  let timer = 0;
+
+  /**
+   * Iterative DFS using an explicit stack to avoid stack overflow on large graphs.
+   */
+  function dfs(startNode: string): void {
+    type Frame = {
+      node: string;
+      neighbors: string[];
+      idx: number;
+      childCount: number;
+    };
+
+    disc.set(startNode, timer);
+    low.set(startNode, timer);
+    timer++;
+    parent.set(startNode, null);
+
+    const stack: Frame[] = [
+      {
+        node: startNode,
+        neighbors: [...(undirected.get(startNode) ?? [])],
+        idx: 0,
+        childCount: 0,
+      },
+    ];
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const u = frame.node;
+
+      if (frame.idx < frame.neighbors.length) {
+        const v = frame.neighbors[frame.idx];
+        frame.idx++;
+
+        if (!disc.has(v)) {
+          // Tree edge: v is unvisited
+          parent.set(v, u);
+          disc.set(v, timer);
+          low.set(v, timer);
+          timer++;
+          frame.childCount++;
+
+          stack.push({
+            node: v,
+            neighbors: [...(undirected.get(v) ?? [])],
+            idx: 0,
+            childCount: 0,
+          });
+        } else if (v !== parent.get(u)) {
+          // Back edge: update low[u]
+          low.set(u, Math.min(low.get(u)!, disc.get(v)!));
+        }
+      } else {
+        // All neighbors of u processed -- pop and update parent
+        stack.pop();
+
+        if (stack.length > 0) {
+          const parentFrame = stack[stack.length - 1];
+          const p = parentFrame.node;
+
+          // Update low[p] from low[u]
+          low.set(p, Math.min(low.get(p)!, low.get(u)!));
+
+          // Check articulation point condition for p
+          // p is NOT root: if low[u] >= disc[p], then p is an AP
+          if (parent.get(p) !== null && low.get(u)! >= disc.get(p)!) {
+            articulationPoints.add(p);
+          }
+        } else {
+          // u is the root: it's an AP if it has 2+ children in DFS tree
+          if (frame.childCount >= 2) {
+            articulationPoints.add(u);
+          }
+        }
+      }
+    }
+  }
+
+  // Run DFS from all unvisited nodes (handles disconnected components)
+  for (const nodeId of graph.nodes.keys()) {
+    if (!disc.has(nodeId)) {
+      dfs(nodeId);
+    }
+  }
+
+  return [...articulationPoints];
 }
 
 /**
