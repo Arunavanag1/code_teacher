@@ -99,7 +99,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Write dependency-mapper.md and teachability-scorer.md agent definitions with scoring rubrics and output schemas
+- [x] 05-01: Write dependency-mapper.md and teachability-scorer.md agent definitions with scoring rubrics and output schemas
 - [ ] 05-02: Write structure-analyzer.md and impact-ranker.md agent definitions; implement two-stage parallel/sequential pipeline
 - [ ] 05-03: Implement dependency-graph.ts — graph data structure, centrality, impact score, bottleneck, cluster detection
 
@@ -152,6 +152,6 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 | 2. File Discovery & Chunking | 2/2 | Complete | 2026-02-25 |
 | 3. LLM Provider System | 2/2 | Complete | 2026-02-25 |
 | 4. Agent Framework | 2/2 | Complete | 2026-02-25 |
-| 5. Agent Definitions & Dependency Graph | 0/3 | Not started | - |
+| 5. Agent Definitions & Dependency Graph | 1/3 | In Progress | - |
 | 6. Terminal Output & Caching | 0/3 | Not started | - |
 | 7. Hardening & Extended Features | 0/3 | Not started | - |
