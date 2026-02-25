@@ -216,11 +216,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
   if (options.stage1Outputs && options.stage1Outputs.length > 0) {
     const stage1Block = options.stage1Outputs
       .map((result) =>
-        JSON.stringify(
-          { agentName: result.agentName, output: result.output },
-          null,
-          2,
-        ),
+        JSON.stringify({ agentName: result.agentName, output: result.output }, null, 2),
       )
       .join('\n\n');
     userPrompt += '\n\nSTAGE 1 AGENT OUTPUTS:\n' + stage1Block;

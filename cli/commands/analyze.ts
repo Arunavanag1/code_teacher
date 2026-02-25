@@ -174,7 +174,6 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   console.log('');
 
   // Run all Stage 1 agents in parallel (dependency mapper, teachability scorer, structure analyzer)
-  // Stage 2 (impact ranker) requires Stage 1 outputs — handled in Phase 5 when agent definitions are complete
   const stage1Paths = allAgentPaths.slice(0, 3); // dependency-mapper, teachability-scorer, structure-analyzer
   const stage1Results = await Promise.all(
     stage1Paths.map((agentPath) =>
@@ -207,7 +206,40 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     console.log('');
   }
 
-  console.log('Analysis complete. Full rendering coming in Phase 6.');
+  // Stage 2: Run impact ranker sequentially — receives all Stage 1 outputs
+  console.log('Running Stage 2 (Impact Ranker)...');
+  const stage2Path = allAgentPaths[3]; // impact-ranker.md is the 4th built-in agent
+  const stage2Result = await runAgent({
+    agentPath: stage2Path,
+    files,
+    chunks,
+    projectPath: resolved.targetPath,
+    provider,
+    model: detected.model,
+    stage1Outputs: stage1Results,
+  });
+
+  // Print Stage 2 result
+  console.log(`Agent: ${stage2Result.agentName}`);
+  console.log(
+    `Tokens: ${stage2Result.tokenUsage.inputTokens} in / ${stage2Result.tokenUsage.outputTokens} out`,
+  );
+  if (resolved.verbose) {
+    console.log('Raw output:');
+    console.log(stage2Result.rawContent);
+  }
+  if (resolved.json) {
+    console.log(JSON.stringify(stage2Result.output, null, 2));
+  } else {
+    console.log(`Output keys: ${Object.keys(stage2Result.output).join(', ')}`);
+  }
+  console.log('');
+
+  // Collect all results for Phase 6 rendering
+  const allResults = [...stage1Results, stage2Result];
+  console.log(
+    `Analysis complete. ${allResults.length} agents produced results. Full rendering coming in Phase 6.`,
+  );
 }
 
 // Re-export providerDefaults for callers that need the model map
