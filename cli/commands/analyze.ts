@@ -13,6 +13,17 @@ import { discoverFiles } from '../../core/file-discovery.js';
 import { chunkFile } from '../../core/chunker.js';
 import type { Chunk } from '../../core/chunker.js';
 import { runAgent, getBuiltInAgentPaths } from '../../agents/runner.js';
+import type { AgentResult } from '../../agents/runner.js';
+import { renderResults } from '../output/renderer.js';
+import {
+  computeCommitHash,
+  computeProjectContentHash,
+  computeAgentVersion,
+  computeCacheKey,
+  getCached,
+  setCached,
+  getProjectCacheDir,
+} from '../../core/cache.js';
 
 /**
  * CLI options passed from commander to the analyze command.
@@ -95,6 +106,8 @@ function mergeConfig(
  * resolved configuration. Actual analysis will be implemented in later phases.
  */
 export async function analyzeCommand(path: string, options: AnalyzeOptions): Promise<void> {
+  const startTime = Date.now();
+
   // Load config from the target project path
   const config = loadConfig(path);
 
@@ -104,11 +117,13 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Merge CLI options over config values (CLI wins), passing the detected provider
   const resolved = mergeConfig(config, options, path, detected);
 
-  // Print provider detection line per spec
+  // Print provider detection line per spec (suppressed in JSON mode for clean output)
   if (detected) {
-    console.log(
-      `Using ${detected.provider} (${detected.model}) \u2014 detected from ${detected.source}`,
-    );
+    if (!resolved.json) {
+      console.log(
+        `Using ${detected.provider} (${detected.model}) \u2014 detected from ${detected.source}`,
+      );
+    }
   } else {
     console.log(
       'No LLM provider detected. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or use --provider to configure.',
@@ -170,8 +185,51 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Add any custom agents from config
   const allAgentPaths = [...agentPaths, ...resolved.customAgents.map((p) => resolve(p))];
 
-  console.log(`Running ${allAgentPaths.length} agent(s)...`);
-  console.log('');
+  if (!resolved.json) {
+    console.log(`Running ${allAgentPaths.length} agent(s)...`);
+  }
+
+  // Compute cache key from project state + agent definitions
+  const commitHash = computeCommitHash(resolved.targetPath);
+  const contentHash = await computeProjectContentHash(files);
+
+  // Compute combined agent version hash (hash of all agent file hashes)
+  const agentHashes: string[] = [];
+  for (const agentPath of allAgentPaths) {
+    agentHashes.push(await computeAgentVersion(agentPath));
+  }
+  const agentVersionHash = computeCacheKey('', agentHashes.join(''), '');
+  const cacheKey = computeCacheKey(commitHash, contentHash, agentVersionHash);
+  const cacheDir = getProjectCacheDir(resolved.targetPath);
+
+  // Check cache
+  const cached = await getCached(cacheKey, cacheDir);
+  if (cached && Array.isArray(cached)) {
+    if (!resolved.json) {
+      console.log('Cache hit \u2014 using cached results.');
+      console.log('');
+    }
+    const durationSec = (Date.now() - startTime) / 1000;
+    const cachedResults = cached as AgentResult[];
+    if (resolved.json) {
+      console.log(JSON.stringify(cachedResults, null, 2));
+    } else {
+      for (const result of cachedResults) {
+        console.log(`Agent: ${result.agentName}`);
+        console.log(`Output keys: ${Object.keys(result.output).join(', ')}`);
+        console.log('');
+      }
+      console.log(
+        `Analysis complete (cached). ${cachedResults.length} agents. ${durationSec.toFixed(1)}s`,
+      );
+    }
+    return;
+  }
+
+  if (!resolved.json) {
+    console.log('Cache miss \u2014 running analysis...');
+    console.log('');
+  }
 
   // Run all Stage 1 agents in parallel (dependency mapper, teachability scorer, structure analyzer)
   const stage1Paths = allAgentPaths.slice(0, 3); // dependency-mapper, teachability-scorer, structure-analyzer
@@ -237,6 +295,10 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
 
   // Collect all results for Phase 6 rendering
   const allResults = [...stage1Results, stage2Result];
+
+  // Cache the results for future runs
+  await setCached(cacheKey, allResults, cacheDir);
+
   console.log(
     `Analysis complete. ${allResults.length} agents produced results. Full rendering coming in Phase 6.`,
   );
