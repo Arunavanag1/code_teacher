@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-25T20:23:21.135Z"
+status: in_progress
+last_updated: "2026-02-25T21:10:00.000Z"
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 3 COMPLETE (both plans done); ready for Phase 4 (Agent Framework)
+**Current focus:** Phase 4 (Agent Framework) — Plan 04-01 complete; ready for Plan 04-02 (runner.ts)
 
 ## Current Position
 
-Phase: 3 of 7 (LLM Provider System) — COMPLETE (Plan 03-01: interfaces + factory, Plan 03-02: concrete SDK implementations)
-Last activity: 2026-02-25 — Plan 03-02 executed (AnthropicProvider, OpenAIProvider, GoogleProvider implemented; factory wired to real instances)
+Phase: 4 of 7 (Agent Framework) — Plan 04-01 complete, Plan 04-02 pending
+Last activity: 2026-02-25 — Plan 04-01 executed (agents/context.ts implemented: buildContext, buildProjectTree, estimateTokens, getContextLimit, MODEL_CONTEXT_LIMITS)
 
-Progress: [████░░░░░░] ~25%
+Progress: [█████░░░░░] ~30%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 7
 - Average duration: ~18 min
-- Total execution time: ~1.2 hours
+- Total execution time: ~1.4 hours
 
 **By Phase:**
 
@@ -41,9 +41,10 @@ Progress: [████░░░░░░] ~25%
 | 1. Project Scaffold & CLI | 2/2 | ~30 min | ~15 min |
 | 2. File Discovery & Chunking | 2/2 | ~35 min | ~17 min |
 | 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
+| 4. Agent Framework | 1/2 | ~18 min | ~18 min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (complete), 02-01 (complete), 02-02 (complete), 03-01 (complete), 03-02 (complete)
+- Last 5 plans: 02-02 (complete), 03-01 (complete), 03-02 (complete), 04-01 (complete)
 - Trend: On track
 
 *Updated after each plan completion*
@@ -73,6 +74,10 @@ Recent decisions affecting current work:
 - file-discovery: size check before readFile to avoid I/O on large files; order: ignore → size → content → binary
 - Chunker break on `end >= totalLines` prevents trailing overlap chunk — without this, a tail chunk is generated containing only lines already covered by the previous chunk
 - Chunk metadata: 1-indexed startLine/endLine (both inclusive), 0-indexed chunkIndex
+- context.ts: 4-chars-per-token heuristic (Math.ceil(text.length / 4)) — no external tokenizer library (too heavy for CLI)
+- context.ts: 80% of model context limit reserved for content (20% buffer for system prompt + output tokens)
+- context.ts: Three-level priority truncation: full -> summarized (20 lines) -> name-only -> omitted (greedy, Phase 5 handles importance ordering)
+- context.ts: PROJECT STRUCTURE tree always first in output; DEPENDENCY MAP placed between tree and file content when importMap present
 
 ### Pending Todos
 
@@ -85,6 +90,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Phase 3 complete — all three LLM provider classes implemented (AnthropicProvider, OpenAIProvider, GoogleProvider), factory wired, all checks passing
-Resume file: .planning/phases/03-llm-provider-system/03-02-SUMMARY.md
-Next: Phase 4 (Agent Framework) — depends on Phase 2 (file discovery + chunker) and Phase 3 (LLM providers). See ROADMAP.md for Phase 4 plan structure.
+Stopped at: Phase 4 Plan 04-01 complete — agents/context.ts fully implemented with all exports (buildContext, buildProjectTree, estimateTokens, getContextLimit, MODEL_CONTEXT_LIMITS, ContextBuildOptions); all checks passing
+Resume file: .planning/phases/04-agent-framework/04-01-SUMMARY.md
+Next: Phase 4 Plan 04-02 (runner.ts + analyze.ts wiring) — depends on Plan 04-01 (runner imports buildContext from context.ts)
