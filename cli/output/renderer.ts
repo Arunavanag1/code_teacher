@@ -273,3 +273,114 @@ function renderStructureDecisions(allResults: AgentResult[], topN: number): stri
 
   return lines.join('\n');
 }
+
+/**
+ * Renders the summary output: header + three sections.
+ * Extracted as a separate function so verbose mode can call it too.
+ */
+function renderSummaryOutput(
+  allResults: AgentResult[],
+  files: FileInfo[],
+  resolved: ResolvedConfig,
+  durationSec: number,
+): void {
+  const projectName = basename(resolved.targetPath);
+  const languages = deriveLanguages(files);
+
+  // Header box
+  console.log('');
+  console.log(formatHeader(projectName, files.length, languages, durationSec));
+
+  // Three content sections
+  console.log(renderHighImpact(allResults, resolved.topN));
+  console.log(renderTeachable(allResults, resolved.topN));
+  console.log(renderStructureDecisions(allResults, resolved.topN));
+}
+
+/**
+ * Renders the full JSON output matching the spec schema:
+ * { project, timestamp, filesAnalyzed, languages, highImpactSections,
+ *   teachableSections, dataStructureDecisions, dependencyGraph }
+ */
+function renderJSON(
+  allResults: AgentResult[],
+  files: FileInfo[],
+  resolved: ResolvedConfig,
+): void {
+  const impactResult = findResult(allResults, 'Impact Ranker');
+  const teachResult = findResult(allResults, 'Teachability Scorer');
+  const structResult = findResult(allResults, 'Structure Analyzer');
+  const mapperResult = findResult(allResults, 'Dependency Mapper');
+
+  const output = {
+    project: basename(resolved.targetPath),
+    timestamp: new Date().toISOString(),
+    filesAnalyzed: files.length,
+    languages: deriveLanguages(files),
+    highImpactSections: impactResult?.output?.rankedSections ?? [],
+    teachableSections: teachResult?.output?.sections ?? [],
+    dataStructureDecisions: structResult?.output?.decisions ?? [],
+    dependencyGraph: mapperResult?.output ?? {},
+  };
+
+  console.log(JSON.stringify(output, null, 2));
+}
+
+/**
+ * Renders verbose mode: full summary output PLUS the complete parsed
+ * output from every agent (not just top-N). Shows agent name headers
+ * and full JSON output for debugging and detailed inspection.
+ */
+function renderVerbose(
+  allResults: AgentResult[],
+  files: FileInfo[],
+  resolved: ResolvedConfig,
+  durationSec: number,
+): void {
+  // First render the full summary
+  renderSummaryOutput(allResults, files, resolved, durationSec);
+
+  // Then add verbose agent output sections
+  console.log('');
+  console.log(`${ANSI.bold}${ANSI.yellow}\uD83D\uDD0D DETAILED AGENT OUTPUT${ANSI.reset}`);
+  console.log(`${ANSI.dim}${'─'.repeat(60)}${ANSI.reset}`);
+
+  for (const result of allResults) {
+    console.log('');
+    console.log(`${ANSI.bold}${ANSI.cyan}--- ${result.agentName} ---${ANSI.reset}`);
+    console.log(
+      `${ANSI.gray}Tokens: ${result.tokenUsage.inputTokens} in / ${result.tokenUsage.outputTokens} out${ANSI.reset}`,
+    );
+    console.log('');
+    console.log(JSON.stringify(result.output, null, 2));
+    console.log('');
+  }
+}
+
+/**
+ * Main entry point for rendering analysis results to stdout.
+ * Routes to the appropriate output mode based on resolved config.
+ *
+ * @param allResults - Array of AgentResult from all agents (Stage 1 + Stage 2)
+ * @param files - FileInfo array from file discovery (for file count, languages)
+ * @param resolved - Resolved configuration (for mode, topN, json, verbose flags)
+ * @param durationSec - Total analysis duration in seconds
+ */
+export function renderResults(
+  allResults: AgentResult[],
+  files: FileInfo[],
+  resolved: ResolvedConfig,
+  durationSec: number,
+): void {
+  if (resolved.json) {
+    renderJSON(allResults, files, resolved);
+    return;
+  }
+
+  if (resolved.verbose) {
+    renderVerbose(allResults, files, resolved, durationSec);
+    return;
+  }
+
+  renderSummaryOutput(allResults, files, resolved, durationSec);
+}
