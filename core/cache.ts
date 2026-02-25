@@ -101,3 +101,53 @@ export async function computeProjectContentHash(files: FileInfo[]): Promise<stri
 
   return createHash('sha256').update(hashes.join('')).digest('hex');
 }
+
+/**
+ * Returns the path to the cache directory for a given project.
+ * Convention: .code-teacher-cache/ in the project root.
+ * This directory should be in .gitignore (already added in Phase 1).
+ *
+ * @param projectPath - Root directory of the analyzed project
+ * @returns Absolute path to the cache directory
+ */
+export function getProjectCacheDir(projectPath: string): string {
+  return join(projectPath, '.code-teacher-cache');
+}
+
+/**
+ * Reads a cached analysis result from disk.
+ * Returns null on any error: file not found, corrupted JSON, permission denied.
+ * This makes cache misses cheap and safe — the caller just runs the analysis.
+ *
+ * @param key - 64-character hex cache key (used as filename)
+ * @param cacheDir - Absolute path to the cache directory
+ * @returns Parsed cached value, or null on miss/error
+ */
+export async function getCached(key: string, cacheDir: string): Promise<unknown | null> {
+  try {
+    const filePath = join(cacheDir, `${key}.json`);
+    const content = await readFile(filePath, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Writes an analysis result to the cache directory.
+ * Creates the cache directory if it doesn't exist (recursive mkdir).
+ * Silently ignores write failures — caching is best-effort, not critical.
+ *
+ * @param key - 64-character hex cache key (used as filename)
+ * @param value - The value to cache (must be JSON-serializable)
+ * @param cacheDir - Absolute path to the cache directory
+ */
+export async function setCached(key: string, value: unknown, cacheDir: string): Promise<void> {
+  try {
+    await mkdir(cacheDir, { recursive: true });
+    const filePath = join(cacheDir, `${key}.json`);
+    await writeFile(filePath, JSON.stringify(value), 'utf-8');
+  } catch {
+    // Cache write failure is non-fatal — silently ignore
+  }
+}
