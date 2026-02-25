@@ -37,6 +37,7 @@ export interface AgentRunOptions {
   provider: LLMProvider; // Instantiated LLM provider
   model: string; // Model name (for token limit lookup in context builder)
   importMap?: Record<string, string[]>; // Optional dependency map from prior agents
+  stage1Outputs?: AgentResult[]; // Stage 1 results passed to Stage 2 agents (e.g., impact ranker)
 }
 
 /**
@@ -206,9 +207,26 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
     systemPromptTokens,
   });
 
-  // Build user prompt: context + task instruction
+  // Build user prompt: context + optional Stage 1 outputs + task instruction
   const taskInstruction = buildTaskInstruction(agent);
-  const userPrompt = `${contextString}\n\n---\n\nTASK:\n${taskInstruction}`;
+
+  let userPrompt = contextString;
+
+  // If Stage 1 outputs are provided (Stage 2 agent), insert them before the task instruction
+  if (options.stage1Outputs && options.stage1Outputs.length > 0) {
+    const stage1Block = options.stage1Outputs
+      .map((result) =>
+        JSON.stringify(
+          { agentName: result.agentName, output: result.output },
+          null,
+          2,
+        ),
+      )
+      .join('\n\n');
+    userPrompt += '\n\nSTAGE 1 AGENT OUTPUTS:\n' + stage1Block;
+  }
+
+  userPrompt += `\n\n---\n\nTASK:\n${taskInstruction}`;
 
   // First LLM call attempt
   const response = await provider.call(systemPrompt, userPrompt, {
