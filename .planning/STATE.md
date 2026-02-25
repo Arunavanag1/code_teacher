@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-last_updated: "2026-02-25T21:21:08.000Z"
+last_updated: "2026-02-25T21:22:48.000Z"
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 5 (Agent Definitions & Dependency Graph) — Plans 05-01 and 05-03 complete, 05-02 in progress
+**Current focus:** Phase 5 complete (Agent Definitions & Dependency Graph) — all 3 plans done, ready for Phase 6
 
 ## Current Position
 
-Phase: 5 of 7 (Agent Definitions & Dependency Graph) — Plans 05-01 and 05-03 complete (2/3 plans done)
-Last activity: 2026-02-25 — Plan 05-03 executed (dependency-graph.ts fully implemented with buildGraph constructor and 5 graph query algorithms)
+Phase: 5 of 7 (Agent Definitions & Dependency Graph) — Complete (3/3 plans done)
+Last activity: 2026-02-25 — Plan 05-02 executed (structure-analyzer.md and impact-ranker.md replaced with production-quality definitions, two-stage pipeline wired in runner.ts and analyze.ts)
 
-Progress: [██████████░] ~57%
+Progress: [███████████░] ~64%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~13 min
-- Total execution time: ~1.5 hours
+- Total plans completed: 11
+- Average duration: ~12 min
+- Total execution time: ~1.7 hours
 
 **By Phase:**
 
@@ -42,10 +42,10 @@ Progress: [██████████░] ~57%
 | 2. File Discovery & Chunking | 2/2 | ~35 min | ~17 min |
 | 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
 | 4. Agent Framework | 2/2 | ~38 min | ~19 min |
-| 5. Agent Definitions & Dependency Graph | 2/3 | ~6 min | ~3 min |
+| 5. Agent Definitions & Dependency Graph | 3/3 | ~11 min | ~4 min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (complete), 04-02 (complete), 05-01 (complete), 05-03 (complete)
+- Last 5 plans: 04-02 (complete), 05-01 (complete), 05-03 (complete), 05-02 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -73,27 +73,30 @@ Recent decisions affecting current work:
 - file-discovery: reads .gitignore from project root only (spec requirement); subdirectory .gitignore files not walked
 - file-discovery: isBinary uses buffer.subarray() (not deprecated slice()); checks first 512 bytes for null byte
 - file-discovery: size check before readFile to avoid I/O on large files; order: ignore → size → content → binary
-- Chunker break on `end >= totalLines` prevents trailing overlap chunk — without this, a tail chunk is generated containing only lines already covered by the previous chunk
+- Chunker break on `end >= totalLines` prevents trailing overlap chunk
 - Chunk metadata: 1-indexed startLine/endLine (both inclusive), 0-indexed chunkIndex
-- context.ts: 4-chars-per-token heuristic (Math.ceil(text.length / 4)) — no external tokenizer library (too heavy for CLI)
+- context.ts: 4-chars-per-token heuristic (Math.ceil(text.length / 4)) — no external tokenizer library
 - context.ts: 80% of model context limit reserved for content (20% buffer for system prompt + output tokens)
-- context.ts: Three-level priority truncation: full -> summarized (20 lines) -> name-only -> omitted (greedy, Phase 5 handles importance ordering)
-- context.ts: PROJECT STRUCTURE tree always first in output; DEPENDENCY MAP placed between tree and file content when importMap present
-- runner.ts: parseAgentMarkdown uses regex walker (/^##\s+(.+)$/gm) — no markdown library; machine-consistent format
+- context.ts: Three-level priority truncation: full -> summarized (20 lines) -> name-only -> omitted
+- context.ts: PROJECT STRUCTURE tree always first; DEPENDENCY MAP between tree and file content when importMap present
+- runner.ts: parseAgentMarkdown uses regex walker (/^##\s+(.+)$/gm) — no markdown library
 - runner.ts: retry strategy — 1 retry with STRICT_JSON_SUFFIX + temperature 0.1; empty {} with console.warn after two failures
 - runner.ts: getBuiltInAgentPaths uses import.meta.url + dirname; navigates dist/agents/ → ../../agents/definitions/
-- analyze.ts: Stage 1 agents run in parallel via Promise.all; Stage 2 impact ranker deferred to Phase 5
+- runner.ts: stage1Outputs serializes only agentName and output (not rawContent or tokenUsage) to minimize token usage
+- analyze.ts: Stage 1 agents run in parallel via Promise.all; Stage 2 impact ranker runs sequentially after
+- analyze.ts: allResults = [...stage1Results, stage2Result] collects all 4 AgentResult objects for Phase 6
 - analyze.ts: exits early with clear message when no provider detected or no files found
-- dependency-mapper.md: enriched output schema with nodes array (id, type, exportedSymbols, fanIn, fanOut, couplingDepth, centrality) + typed edges (imports/calls/extends/implements/uses with weight 1-10) -- maps directly to DependencyGraph interface
-- dependency-mapper.md: centrality formula uses weighted combination (fanIn * 0.6 + fanOut * 0.4) -- being depended on weighted higher
-- teachability-scorer.md: 5-criterion rubric (conceptualDensity, clarity, transferability, novelty, selfContainment) with worked examples at score 2, 5, 9
-- teachability-scorer.md: returns 3-15 sections ranked by overall score descending, each with concepts and prerequisites arrays
-- dependency-graph.ts: buildGraph populates language from file extension and lineCount from FileInfo (not LLM) for reliability
-- dependency-graph.ts: getImpactScore uses BFS downstream reach normalized to 0-10 (reachableCount / (totalNodes - 1) * 10)
-- dependency-graph.ts: getCentrality uses weighted degree approximation (W_IN=0.6, W_OUT=0.4) instead of O(V*E) Brandes -- sufficient for CLI-scale codebases
-- dependency-graph.ts: getBottlenecks uses iterative Tarjan's articulation points (explicit stack, not recursive) on undirected graph
-- dependency-graph.ts: getCluster uses undirected BFS connected components (not SCC) per research recommendation
-- dependency-graph.ts: all algorithms O(V+E), pure TypeScript, no external graph library dependencies
+- dependency-mapper.md: enriched output schema with nodes (fanIn, fanOut, couplingDepth, centrality) + typed edges
+- dependency-mapper.md: centrality formula uses weighted combination (fanIn * 0.6 + fanOut * 0.4)
+- teachability-scorer.md: 5-criterion rubric with worked examples at score 2, 5, 9; returns 3-15 sections
+- structure-analyzer.md: 3-criterion rubric (decisionSignificance, alternativeAwareness, performanceImplication); infers alternatives even when not documented; returns 2-10 decisions
+- impact-ranker.md: explicit JSON path instructions for output.nodes, output.sections, output.decisions; composite score = blast(0.3) + knowledge(0.25) + refactor(0.25) + teachability(0.2); returns 5-20 ranked sections
+- dependency-graph.ts: buildGraph populates language from file extension and lineCount from FileInfo
+- dependency-graph.ts: getImpactScore uses BFS downstream reach normalized to 0-10
+- dependency-graph.ts: getCentrality uses weighted degree approximation (W_IN=0.6, W_OUT=0.4)
+- dependency-graph.ts: getBottlenecks uses iterative Tarjan's articulation points (explicit stack)
+- dependency-graph.ts: getCluster uses undirected BFS connected components
+- dependency-graph.ts: all algorithms O(V+E), pure TypeScript, no external graph library
 
 ### Pending Todos
 
@@ -106,6 +109,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Plan 05-03 complete — dependency-graph.ts fully implemented with buildGraph constructor and 5 graph query algorithms (getEntryPoints, getImpactScore, getCentrality, getCluster, getBottlenecks)
-Resume file: .planning/phases/05-agent-definitions-dependency-graph/05-03-SUMMARY.md
-Next: Plan 05-02 (structure-analyzer.md and impact-ranker.md + two-stage pipeline wiring) — running in parallel
+Stopped at: Plan 05-02 complete — Phase 5 fully complete (all 4 agent definitions production-quality, two-stage pipeline wired, dependency graph implemented)
+Resume file: .planning/phases/05-agent-definitions-dependency-graph/05-02-SUMMARY.md
+Next: Phase 6 (Terminal Output & Caching) — Plan 06-01
