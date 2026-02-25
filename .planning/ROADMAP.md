@@ -82,8 +82,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Implement runner.ts — markdown agent parser, prompt construction, LLM call orchestration with retries
-- [ ] 04-02: Implement context.ts — context window builder with token counting and priority-based truncation
+- [ ] 04-01: Implement context.ts — context window builder with token counting and priority-based truncation
+- [ ] 04-02: Implement runner.ts — markdown agent parser, prompt construction, LLM call orchestration with retries, agent stubs, and analyze.ts wiring
 
 ### Phase 5: Agent Definitions & Dependency Graph
 **Goal**: All four agents produce scored, reasoned analysis; dependency graph enables impact queries
