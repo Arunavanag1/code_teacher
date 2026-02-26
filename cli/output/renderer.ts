@@ -288,10 +288,17 @@ function renderSummaryOutput(
   console.log('');
   console.log(formatHeader(projectName, files.length, languages, durationSec));
 
-  // Three content sections
-  console.log(renderHighImpact(allResults, resolved.topN));
-  console.log(renderTeachable(allResults, resolved.topN));
-  console.log(renderStructureDecisions(allResults, resolved.topN));
+  // Render sections based on mode (default 'all' renders everything)
+  const mode = resolved.mode;
+  if (mode === 'all' || mode === 'sections') {
+    console.log(renderHighImpact(allResults, resolved.topN));
+  }
+  if (mode === 'all' || mode === 'teachings') {
+    console.log(renderTeachable(allResults, resolved.topN));
+  }
+  if (mode === 'all' || mode === 'structures') {
+    console.log(renderStructureDecisions(allResults, resolved.topN));
+  }
 }
 
 /**
@@ -305,16 +312,28 @@ function renderJSON(allResults: AgentResult[], files: FileInfo[], resolved: Reso
   const structResult = findResult(allResults, 'Structure Analyzer');
   const mapperResult = findResult(allResults, 'Dependency Mapper');
 
-  const output = {
+  // Base fields always included regardless of mode
+  const output: Record<string, unknown> = {
     project: basename(resolved.targetPath),
     timestamp: new Date().toISOString(),
     filesAnalyzed: files.length,
     languages: deriveLanguages(files),
-    highImpactSections: impactResult?.output?.rankedSections ?? [],
-    teachableSections: teachResult?.output?.sections ?? [],
-    dataStructureDecisions: structResult?.output?.decisions ?? [],
-    dependencyGraph: mapperResult?.output ?? {},
   };
+
+  // Include section-specific fields based on mode
+  const mode = resolved.mode;
+  if (mode === 'all' || mode === 'sections') {
+    output.highImpactSections = impactResult?.output?.rankedSections ?? [];
+  }
+  if (mode === 'all' || mode === 'teachings') {
+    output.teachableSections = teachResult?.output?.sections ?? [];
+  }
+  if (mode === 'all' || mode === 'structures') {
+    output.dataStructureDecisions = structResult?.output?.decisions ?? [];
+  }
+
+  // Dependency graph is always included (useful context for all modes)
+  output.dependencyGraph = mapperResult?.output ?? {};
 
   console.log(JSON.stringify(output, null, 2));
 }
