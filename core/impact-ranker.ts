@@ -127,6 +127,26 @@ export function computeImpactRanking(stage1Results: AgentResult[]): AgentResult 
     return undefined;
   }
 
+  // Build line-range lookup from teach sections and structure decisions
+  // so impact sections show actual code, not just file references
+  const lineRangeMap = new Map<string, { startLine: number; endLine: number }>();
+  for (const section of teachSections) {
+    const file = typeof section.file === 'string' ? section.file : '';
+    const start = typeof section.startLine === 'number' ? section.startLine : 0;
+    const end = typeof section.endLine === 'number' ? section.endLine : 0;
+    if (file && start > 0 && end >= start && !lineRangeMap.has(file)) {
+      lineRangeMap.set(file, { startLine: start, endLine: end });
+    }
+  }
+  for (const decision of structDecisions) {
+    const file = typeof decision.file === 'string' ? decision.file : '';
+    const start = typeof decision.startLine === 'number' ? decision.startLine : 0;
+    const end = typeof decision.endLine === 'number' ? decision.endLine : 0;
+    if (file && start > 0 && end >= start && !lineRangeMap.has(file)) {
+      lineRangeMap.set(file, { startLine: start, endLine: end });
+    }
+  }
+
   // Compute composite score for each file
   const ranked: RankedSection[] = [];
   for (const file of allFiles) {
@@ -162,10 +182,16 @@ export function computeImpactRanking(stage1Results: AgentResult[]): AgentResult 
         ? `${file}: ${parts.join(', ')}.`
         : `${file}: standard module with moderate importance.`;
 
+    // Use specific line ranges from teach/structure agents when available,
+    // otherwise default to first 30 lines to show the file's key exports/interface
+    const knownRange = lookup(lineRangeMap, file);
+    const startLine = knownRange?.startLine ?? 1;
+    const endLine = knownRange?.endLine ?? 30;
+
     ranked.push({
       file,
-      startLine: 1,
-      endLine: 0, // Full file reference
+      startLine,
+      endLine,
       compositeScore,
       criteria: {
         blastRadius,
