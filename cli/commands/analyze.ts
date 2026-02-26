@@ -200,11 +200,25 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
 
   // Resolve built-in agent paths
   const agentPaths = getBuiltInAgentPaths();
-  // Add any custom agents from config
-  const allAgentPaths = [...agentPaths, ...resolved.customAgents.map((p) => resolve(p))];
+  // Custom agent paths resolve relative to the project root (not process.cwd())
+  const allAgentPaths = [
+    ...agentPaths,
+    ...resolved.customAgents.map((p) => resolve(resolved.targetPath, p)),
+  ];
 
   if (!resolved.json) {
     console.log(`Running ${allAgentPaths.length} agent(s)...`);
+  }
+
+  // Validate custom agent files exist before running (fail fast with clear message)
+  for (const customPath of resolved.customAgents) {
+    const fullPath = resolve(resolved.targetPath, customPath);
+    try {
+      await readFile(fullPath, 'utf-8');
+    } catch {
+      console.error(`Custom agent not found: ${fullPath}. Check customAgents in your config.`);
+      return;
+    }
   }
 
   // Compute cache key from project state + agent definitions
@@ -237,8 +251,14 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     console.log('');
   }
 
-  // Run all Stage 1 agents in parallel (dependency mapper, teachability scorer, structure analyzer)
-  const stage1Paths = allAgentPaths.slice(0, 3); // dependency-mapper, teachability-scorer, structure-analyzer
+  // Built-in agents are indices 0-3 (mapper, scorer, analyzer, ranker)
+  // Custom agents are appended after. All except impact ranker (index 3) run in Stage 1.
+  const builtInCount = agentPaths.length; // 4 built-in agents
+  const impactRankerPath = agentPaths[builtInCount - 1]; // Always the last built-in
+  const stage1Paths = [
+    ...agentPaths.slice(0, builtInCount - 1), // First 3 built-in Stage 1 agents
+    ...resolved.customAgents.map((p) => resolve(resolved.targetPath, p)), // All custom agents
+  ];
   const stage1Results = await Promise.all(
     stage1Paths.map((agentPath) =>
       runAgent({
@@ -256,7 +276,7 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   if (!resolved.json) {
     console.log('Running Stage 2 (Impact Ranker)...');
   }
-  const stage2Path = allAgentPaths[3]; // impact-ranker.md is the 4th built-in agent
+  const stage2Path = impactRankerPath;
   const stage2Result = await runAgent({
     agentPath: stage2Path,
     files,
