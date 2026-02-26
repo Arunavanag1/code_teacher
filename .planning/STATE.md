@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T01:08:19Z"
+last_updated: "2026-02-26T01:14:23Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 7 in progress (Hardening & Extended Features) — plan 01 done, 2 remaining.
+**Current focus:** Phase 7 in progress (Hardening & Extended Features) — plan 02 done, 1 remaining.
 
 ## Current Position
 
-Phase: 7 of 7 (Hardening & Extended Features) — In Progress (1/3 plans done)
-Last activity: 2026-02-26 — Plan 07-01 executed (error handling, retry, resilience)
+Phase: 7 of 7 (Hardening & Extended Features) — In Progress (2/3 plans done)
+Last activity: 2026-02-26 — Plan 07-02 executed (init command, custom agents, watch mode)
 
-Progress: [██████████████████] ~89%
+Progress: [███████████████████] ~94%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: ~8 min
-- Total execution time: ~2.1 hours
+- Total execution time: ~2.2 hours
 
 **By Phase:**
 
@@ -44,10 +44,10 @@ Progress: [██████████████████] ~89%
 | 4. Agent Framework | 2/2 | ~38 min | ~19 min |
 | 5. Agent Definitions & Dependency Graph | 3/3 | ~11 min | ~4 min |
 | 6. Terminal Output & Caching | 3/3 | ~9 min | ~3 min |
-| 7. Hardening & Extended Features | 1/3 | ~4 min | ~4 min |
+| 7. Hardening & Extended Features | 2/3 | ~7 min | ~4 min |
 
 **Recent Trend:**
-- Last 5 plans: 06-01 (complete), 06-02 (complete), 06-03 (complete), 07-01 (complete)
+- Last 5 plans: 06-02 (complete), 06-03 (complete), 07-01 (complete), 07-02 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -121,6 +121,15 @@ Recent decisions affecting current work:
 - cli/index.ts: process.exitCode = 1 (not process.exit(1)) for clean event loop drain
 - analyze.ts: discoverFiles wrapped with "Cannot read directory" error; chunking readFile skips unreadable files with console.warn
 - file-discovery.ts: per-entry and per-subdirectory try/catch prevents single-file failures from aborting the walk
+- init.ts: STARTER_CONFIG omits provider/model — auto-detection is default, including them confuses new users
+- init.ts: existsSync for pre-write check (simpler than async for quick existence check)
+- analyze.ts: custom agent paths resolve relative to resolved.targetPath (not process.cwd())
+- analyze.ts: custom agents run in Stage 1 alongside built-in agents; impact ranker always Stage 2
+- analyze.ts: impactRankerPath uses variable reference instead of hardcoded index for robustness
+- analyze.ts: watch mode uses fs.watch with { recursive: true } — safe for Node.js 22+ target
+- analyze.ts: 500ms debounce in watch mode prevents rapid-fire re-analysis from editor auto-save
+- analyze.ts: .code-teacher-cache/ excluded from watch events to prevent infinite loops
+- analyze.ts: re-analysis passes { ...options, watch: undefined } to prevent recursive watch setup
 
 ### Pending Todos
 
@@ -133,6 +142,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 07-01-PLAN.md (error handling, retry, resilience)
-Resume file: .planning/phases/07-hardening-extended-features/07-01-SUMMARY.md
-Next: Plan 07-02 (init command, custom agent loading, watch mode)
+Stopped at: Completed 07-02-PLAN.md (init command, custom agents, watch mode)
+Resume file: .planning/phases/07-hardening-extended-features/07-02-SUMMARY.md
+Next: Plan 07-03 (real-world testing, performance optimization, README)
