@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-26T02:49:53Z"
+status: complete
+last_updated: "2026-02-26T03:02:48Z"
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -18,19 +18,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 8 — Plan 01 complete (teach, impact, structures commands). Plan 02 next (README streamlining).
+**Current focus:** All phases complete. Milestone v1.0 ready.
 
 ## Current Position
 
-Phase: 8 of 8 (README & Separate Commands) — Plan 1 of 2 complete
-Last activity: 2026-02-26 — Completed 08-01 (teach, impact, structures commands)
+Phase: 8 of 8 (README & Separate Commands) — Plan 2 of 2 complete
+Last activity: 2026-02-26 — Completed 08-02 (README streamlining)
 
-Progress: [██████████████████▒▒] 95%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: ~8 min
 - Total execution time: ~2.5 hours
 
@@ -45,10 +45,10 @@ Progress: [██████████████████▒▒] 95%
 | 5. Agent Definitions & Dependency Graph | 3/3 | ~11 min | ~4 min |
 | 6. Terminal Output & Caching | 3/3 | ~9 min | ~3 min |
 | 7. Hardening & Extended Features | 3/3 | ~11 min | ~4 min |
-| 8. README & Separate Commands | 1/2 | ~11 min | ~11 min |
+| 8. README & Separate Commands | 2/2 | ~13 min | ~7 min |
 
 **Recent Trend:**
-- Last 5 plans: 07-01 (complete), 07-02 (complete), 07-03 (complete), 08-01 (complete)
+- Last 5 plans: 07-02 (complete), 07-03 (complete), 08-01 (complete), 08-02 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -60,9 +60,9 @@ Progress: [██████████████████▒▒] 95%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- registerFocusedCommand helper used to DRY shared flag definitions and error handling across teach/impact/structures commands
-- renderJSON output type changed to Record<string, unknown> for conditional key inclusion by mode
-- dependencyGraph always included in JSON output regardless of mode (structural context)
+- Removed all ASCII diagrams from README in favor of prose descriptions (pipeline, provider detection, project tree)
+- Error handling section uses collapsible `<details>` block for compact README
+- Custom agent template replaced with 5-section bullet list instead of full 35-line example
 
 ### Roadmap Evolution
 
@@ -79,6 +79,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-26
-Stopped at: Completed 08-01-PLAN.md
-Resume file: .planning/phases/08-readme-and-separate-commands/08-02-PLAN.md
-Next: Execute Plan 08-02 with /gsd:execute-phase
+Stopped at: Completed 08-02-PLAN.md
+Resume file: None
+Next: Milestone v1.0 complete
