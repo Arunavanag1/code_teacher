@@ -201,25 +201,36 @@ export async function runAgent(options) {
 // Built-in agent path resolution
 // ---------------------------------------------------------------------------
 /**
- * Returns absolute paths to all built-in agent definition files.
- *
- * Path resolution: This file compiles to dist/agents/runner.js at runtime.
- * The agent .md files are in agents/definitions/ (NOT in dist/).
- * Navigation: dist/agents/runner.js → ../../agents/definitions/
- *
- * import.meta.url is the ESM equivalent of __filename in CommonJS.
- * This approach works correctly when the package is installed via npm/GitHub.
+ * Returns the absolute path to the agent definitions directory.
+ * Path resolution: dist/agents/runner.js → ../../agents/definitions/
  */
-export function getBuiltInAgentPaths() {
+function getDefinitionsDir() {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
-    // dist/agents/runner.js → ../../agents/definitions/
-    const definitionsDir = resolve(__dirname, '../../agents/definitions');
+    return resolve(__dirname, '../../agents/definitions');
+}
+/**
+ * Returns absolute paths to built-in agent definition files.
+ * Uses the combined analyzer (1 LLM call) by default.
+ * The dependency-mapper is first (index 0) and is replaced by static parsing.
+ */
+export function getBuiltInAgentPaths() {
+    const definitionsDir = getDefinitionsDir();
+    return [
+        resolve(definitionsDir, 'dependency-mapper.md'),
+        resolve(definitionsDir, 'combined-analyzer.md'),
+    ];
+}
+/**
+ * Returns absolute paths for full analysis mode (original separate agents).
+ * Used when --full-analysis flag is passed.
+ */
+export function getFullAnalysisAgentPaths() {
+    const definitionsDir = getDefinitionsDir();
     return [
         resolve(definitionsDir, 'dependency-mapper.md'),
         resolve(definitionsDir, 'teachability-scorer.md'),
         resolve(definitionsDir, 'structure-analyzer.md'),
-        resolve(definitionsDir, 'impact-ranker.md'),
     ];
 }
 //# sourceMappingURL=runner.js.map

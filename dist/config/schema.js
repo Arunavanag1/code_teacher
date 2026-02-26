@@ -75,6 +75,20 @@ export function validateConfig(raw) {
             errors.push('"customAgents" must contain only strings');
         }
     }
+    // Validate maxAnalyzedFiles
+    if (obj.maxAnalyzedFiles !== undefined) {
+        if (typeof obj.maxAnalyzedFiles !== 'number' ||
+            obj.maxAnalyzedFiles < 0 ||
+            !Number.isInteger(obj.maxAnalyzedFiles)) {
+            errors.push('"maxAnalyzedFiles" must be a non-negative integer');
+        }
+    }
+    // Validate ollamaUrl
+    if (obj.ollamaUrl !== undefined) {
+        if (typeof obj.ollamaUrl !== 'string') {
+            errors.push('"ollamaUrl" must be a string');
+        }
+    }
     if (errors.length > 0) {
         throw new ConfigValidationError(`Invalid config: ${errors.length} error(s) found`, errors);
     }
@@ -87,6 +101,8 @@ export function validateConfig(raw) {
         provider: schema.provider ?? defaults.provider,
         model: schema.model ?? defaults.model,
         customAgents: schema.customAgents ?? defaults.customAgents,
+        maxAnalyzedFiles: schema.maxAnalyzedFiles ?? defaults.maxAnalyzedFiles,
+        ollamaUrl: schema.ollamaUrl ?? defaults.ollamaUrl,
     };
 }
 /**

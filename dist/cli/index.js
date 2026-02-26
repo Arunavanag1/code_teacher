@@ -46,6 +46,7 @@ function registerFocusedCommand(name, description, handler) {
         .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
         .option('--model <name>', 'specific model to use')
         .option('--watch', 'watch for file changes and re-analyze automatically')
+        .option('--full-analysis', 'use original 4-agent pipeline (separate LLM calls for each agent)')
         .action(async (path, options) => {
         try {
             await handler(path, options);
@@ -82,6 +83,7 @@ program
     .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
     .option('--model <name>', 'specific model to use')
     .option('--watch', 'watch for file changes and re-analyze automatically')
+    .option('--full-analysis', 'use original 4-agent pipeline (separate LLM calls for each agent)')
     .action(async (path, options) => {
     try {
         await analyzeCommand(path, options);

@@ -5,6 +5,7 @@
  */
 import type { FileInfo } from '../core/file-discovery.js';
 import type { Chunk } from '../core/chunker.js';
+import type { DependencyGraph } from '../core/dependency-graph.js';
 /**
  * Model context window sizes (in tokens).
  * Character heuristic: ~4 chars per token for code (widely cited, ±10-15% error).
@@ -34,6 +35,13 @@ export declare function getContextLimit(model: string): number;
  *   └── package.json
  */
 export declare function buildProjectTree(files: FileInfo[], projectPath: string): string;
+/**
+ * Prioritizes files by importance using dependency graph metrics.
+ * Sorts by a weighted score: (fanIn * 0.4) + (centrality * 0.3) + (fanOut * 0.2) + (sizeScore * 0.1)
+ * Always includes entry points and high fan-in files.
+ * Returns at most maxFiles files.
+ */
+export declare function prioritizeFiles(files: FileInfo[], projectPath: string, graph: DependencyGraph | undefined, maxFiles: number): FileInfo[];
 /**
  * Options for assembling a context window string.
  * systemPromptTokens is subtracted from the budget before file content is added.

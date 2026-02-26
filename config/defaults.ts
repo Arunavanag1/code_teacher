@@ -16,6 +16,10 @@ export interface Config {
   model: string | undefined;
   /** Paths to custom agent markdown definition files */
   customAgents: string[];
+  /** Maximum number of files to send to LLM agents (0 = unlimited) */
+  maxAnalyzedFiles: number;
+  /** Ollama base URL for local LLM inference */
+  ollamaUrl: string | undefined;
 }
 
 export const defaults: Config = {
@@ -45,4 +49,6 @@ export const defaults: Config = {
   provider: undefined,
   model: undefined,
   customAgents: [],
+  maxAnalyzedFiles: 50,
+  ollamaUrl: undefined,
 };

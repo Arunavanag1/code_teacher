@@ -16,6 +16,7 @@
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAIProvider } from './openai.js';
 import { GoogleProvider } from './google.js';
+import { OllamaProvider } from './ollama.js';
 
 // ---------------------------------------------------------------------------
 // Spec-exact interfaces
@@ -64,6 +65,7 @@ export const providerDefaults: Record<string, string> = {
   anthropic: 'claude-sonnet-4-6',
   openai: 'gpt-4o',
   google: 'gemini-2.0-flash',
+  ollama: 'llama3.1',
 };
 
 // ---------------------------------------------------------------------------
@@ -182,12 +184,21 @@ export function detectProvider(
  * is set before attempting to construct the provider. Throws ProviderDetectionError
  * with a clear message if either check fails.
  */
-export function createProvider(providerName: string, model: string): LLMProvider {
+export function createProvider(
+  providerName: string,
+  model: string,
+  ollamaUrl?: string,
+): LLMProvider {
+  // Ollama doesn't require an API key
+  if (providerName === 'ollama') {
+    return new OllamaProvider(model, ollamaUrl);
+  }
+
   const envVarName = providerApiKeyEnvVars[providerName];
 
   if (!envVarName) {
     throw new ProviderDetectionError(
-      `Unknown provider '${providerName}'. Supported providers: anthropic, openai, google.`,
+      `Unknown provider '${providerName}'. Supported providers: anthropic, openai, google, ollama.`,
     );
   }
 
@@ -207,7 +218,7 @@ export function createProvider(providerName: string, model: string): LLMProvider
       return new GoogleProvider(apiKey, model);
     default:
       throw new ProviderDetectionError(
-        `Unknown provider '${providerName}'. Supported providers: anthropic, openai, google.`,
+        `Unknown provider '${providerName}'. Supported providers: anthropic, openai, google, ollama.`,
       );
   }
 }

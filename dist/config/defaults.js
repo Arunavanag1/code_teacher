@@ -29,5 +29,7 @@ export const defaults = {
     provider: undefined,
     model: undefined,
     customAgents: [],
+    maxAnalyzedFiles: 50,
+    ollamaUrl: undefined,
 };
 //# sourceMappingURL=defaults.js.map

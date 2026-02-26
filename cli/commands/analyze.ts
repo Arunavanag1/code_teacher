@@ -13,9 +13,10 @@ import type { DetectedProvider } from '../../providers/index.js';
 import { discoverFiles } from '../../core/file-discovery.js';
 import { chunkFile } from '../../core/chunker.js';
 import type { Chunk } from '../../core/chunker.js';
-import { runAgent, getBuiltInAgentPaths } from '../../agents/runner.js';
+import { runAgent, getBuiltInAgentPaths, getFullAnalysisAgentPaths } from '../../agents/runner.js';
 import type { AgentResult } from '../../agents/runner.js';
 import { renderResults } from '../output/renderer.js';
+import { prioritizeFiles } from '../../agents/context.js';
 import {
   computeCommitHash,
   computeProjectContentHash,
@@ -25,6 +26,8 @@ import {
   setCached,
   getProjectCacheDir,
 } from '../../core/cache.js';
+import { computeImpactRanking } from '../../core/impact-ranker.js';
+import { parseImports } from '../../core/import-parser.js';
 
 /**
  * CLI options passed from commander to the analyze command.
@@ -40,6 +43,7 @@ export interface AnalyzeOptions {
   provider?: string;
   model?: string;
   watch?: true;
+  fullAnalysis?: true;
 }
 
 /**
@@ -152,7 +156,7 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   }
 
   // Create the LLM provider instance
-  const provider = createProvider(detected.provider, detected.model);
+  const provider = createProvider(detected.provider, detected.model, config.ollamaUrl);
 
   // Discover files in the target project
   if (!resolved.json) {
@@ -193,8 +197,8 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     }
   }
 
-  // Resolve built-in agent paths
-  const agentPaths = getBuiltInAgentPaths();
+  // Resolve built-in agent paths (combined by default, full with --full-analysis)
+  const agentPaths = options.fullAnalysis ? getFullAnalysisAgentPaths() : getBuiltInAgentPaths();
   // Custom agent paths resolve relative to the project root (not process.cwd())
   const allAgentPaths = [
     ...agentPaths,
@@ -246,20 +250,43 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     console.log('');
   }
 
-  // Built-in agents are indices 0-3 (mapper, scorer, analyzer, ranker)
-  // Custom agents are appended after. All except impact ranker (index 3) run in Stage 1.
-  const builtInCount = agentPaths.length; // 4 built-in agents
-  const impactRankerPath = agentPaths[builtInCount - 1]; // Always the last built-in
-  const stage1Paths = [
-    ...agentPaths.slice(0, builtInCount - 1), // First 3 built-in Stage 1 agents
-    ...resolved.customAgents.map((p) => resolve(resolved.targetPath, p)), // All custom agents
+  // Static analysis: parse imports and build dependency graph (no LLM call)
+  if (!resolved.json) {
+    console.log('Parsing imports...');
+  }
+  const { graph: depGraph, agentResult: depMapperResult } = await parseImports(
+    files,
+    resolved.targetPath,
+  );
+
+  // Smart file sampling: prioritize files by dependency importance
+  const maxFiles = config.maxAnalyzedFiles || 50;
+  const prioritizedFiles = prioritizeFiles(files, resolved.targetPath, depGraph, maxFiles);
+
+  // Rechunk only the prioritized files for LLM agents
+  const prioritizedChunks = new Map<string, Chunk[]>();
+  for (const file of prioritizedFiles) {
+    const existingChunks = chunks.get(file.path);
+    if (existingChunks) {
+      prioritizedChunks.set(file.path, existingChunks);
+    }
+  }
+
+  if (!resolved.json && prioritizedFiles.length < files.length) {
+    console.log(`Sampled ${prioritizedFiles.length} of ${files.length} files for LLM analysis.`);
+  }
+
+  // LLM agents: skip dependency-mapper (index 0), run remaining built-in + custom agents
+  const llmAgentPaths = [
+    ...agentPaths.slice(1), // Skip dependency-mapper.md (now static)
+    ...resolved.customAgents.map((p) => resolve(resolved.targetPath, p)),
   ];
-  const stage1Results = await Promise.all(
-    stage1Paths.map((agentPath) =>
+  const llmResults = await Promise.all(
+    llmAgentPaths.map((agentPath) =>
       runAgent({
         agentPath,
-        files,
-        chunks,
+        files: prioritizedFiles,
+        chunks: prioritizedChunks,
         projectPath: resolved.targetPath,
         provider,
         model: detected.model,
@@ -267,20 +294,42 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     ),
   );
 
-  // Stage 2: Run impact ranker sequentially — receives all Stage 1 outputs
-  if (!resolved.json) {
-    console.log('Running Stage 2 (Impact Ranker)...');
+  // Split combined analyzer output into separate synthetic results for renderer compatibility
+  const expandedLlmResults: AgentResult[] = [];
+  for (const result of llmResults) {
+    if (result.agentName === 'Combined Analyzer') {
+      // Split into Teachability Scorer and Structure Analyzer synthetic results
+      expandedLlmResults.push({
+        agentName: 'Teachability Scorer',
+        output: { sections: result.output.sections ?? [] },
+        rawContent: result.rawContent,
+        tokenUsage: {
+          inputTokens: Math.floor(result.tokenUsage.inputTokens / 2),
+          outputTokens: Math.floor(result.tokenUsage.outputTokens / 2),
+        },
+      });
+      expandedLlmResults.push({
+        agentName: 'Structure Analyzer',
+        output: { decisions: result.output.decisions ?? [] },
+        rawContent: result.rawContent,
+        tokenUsage: {
+          inputTokens: Math.ceil(result.tokenUsage.inputTokens / 2),
+          outputTokens: Math.ceil(result.tokenUsage.outputTokens / 2),
+        },
+      });
+    } else {
+      expandedLlmResults.push(result);
+    }
   }
-  const stage2Path = impactRankerPath;
-  const stage2Result = await runAgent({
-    agentPath: stage2Path,
-    files,
-    chunks,
-    projectPath: resolved.targetPath,
-    provider,
-    model: detected.model,
-    stage1Outputs: stage1Results,
-  });
+
+  // Combine static + LLM results as Stage 1
+  const stage1Results: AgentResult[] = [depMapperResult, ...expandedLlmResults];
+
+  // Stage 2: Compute impact ranking statically (no LLM call)
+  if (!resolved.json) {
+    console.log('Computing impact ranking...');
+  }
+  const stage2Result = computeImpactRanking(stage1Results);
 
   // Collect all results and render output
   const allResults: AgentResult[] = [...stage1Results, stage2Result];

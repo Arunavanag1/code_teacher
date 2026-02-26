@@ -15,6 +15,10 @@ export interface Config {
     model: string | undefined;
     /** Paths to custom agent markdown definition files */
     customAgents: string[];
+    /** Maximum number of files to send to LLM agents (0 = unlimited) */
+    maxAnalyzedFiles: number;
+    /** Ollama base URL for local LLM inference */
+    ollamaUrl: string | undefined;
 }
 export declare const defaults: Config;
 //# sourceMappingURL=defaults.d.ts.map

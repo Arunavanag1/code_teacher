@@ -61,6 +61,7 @@ function registerFocusedCommand(
     .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
     .option('--model <name>', 'specific model to use')
     .option('--watch', 'watch for file changes and re-analyze automatically')
+    .option('--full-analysis', 'use original 4-agent pipeline (separate LLM calls for each agent)')
     .action(async (path: string, options: AnalyzeOptions) => {
       try {
         await handler(path, options);
@@ -94,6 +95,7 @@ program
   .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
   .option('--model <name>', 'specific model to use')
   .option('--watch', 'watch for file changes and re-analyze automatically')
+  .option('--full-analysis', 'use original 4-agent pipeline (separate LLM calls for each agent)')
   .action(async (path: string, options: AnalyzeOptions) => {
     try {
       await analyzeCommand(path, options);
@@ -134,7 +136,9 @@ program
 
 program
   .command('set-key')
-  .description('Save an API key so code-teacher works in any environment (Claude Code, Codex, etc.)')
+  .description(
+    'Save an API key so code-teacher works in any environment (Claude Code, Codex, etc.)',
+  )
   .argument('<provider>', "provider name: 'anthropic', 'openai', or 'google'")
   .argument('<key>', 'your API key')
   .action(async (provider: string, key: string) => {

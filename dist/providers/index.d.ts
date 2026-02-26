@@ -82,5 +82,5 @@ export declare function detectProvider(cliProvider?: string, cliModel?: string, 
  * is set before attempting to construct the provider. Throws ProviderDetectionError
  * with a clear message if either check fails.
  */
-export declare function createProvider(providerName: string, model: string): LLMProvider;
+export declare function createProvider(providerName: string, model: string, ollamaUrl?: string): LLMProvider;
 //# sourceMappingURL=index.d.ts.map

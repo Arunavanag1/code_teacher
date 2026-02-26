@@ -84,6 +84,7 @@ code-teacher analyze [path]
 | `--provider <name>` | string | auto | LLM provider: `anthropic`, `openai`, or `google` |
 | `--model <name>` | string | auto | Specific model to use (e.g., `gpt-4o`) |
 | `--watch` | boolean | `false` | Watch for file changes and re-analyze automatically |
+| `--full-analysis` | boolean | `false` | Use original 4-agent pipeline (separate LLM calls) |
 
 ```bash
 # Full analysis
@@ -144,6 +145,8 @@ Place a `code-teacher.config.json` in your project root to customize behavior. R
 | `provider` | `string` | auto-detect | LLM provider: `"anthropic"`, `"openai"`, or `"google"` |
 | `model` | `string` | provider default | Specific model name to use |
 | `customAgents` | `string[]` | `[]` | Paths to custom agent `.md` files, relative to project root |
+| `maxAnalyzedFiles` | `number` | `50` | Maximum files sent to LLM agents (0 = unlimited) |
+| `ollamaUrl` | `string` | `http://localhost:11434/v1` | Ollama base URL for local LLM inference |
 
 CLI flags take highest priority, then environment variables (`CODE_TEACHER_PROVIDER`, `CODE_TEACHER_MODEL`), then config file, then built-in defaults.
 
@@ -154,11 +157,34 @@ CLI flags take highest priority, then environment variables (`CODE_TEACHER_PROVI
 | Anthropic (Claude) | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | 1st |
 | OpenAI (GPT) | `OPENAI_API_KEY` | `gpt-4o` | 2nd |
 | Google (Gemini) | `GOOGLE_API_KEY` | `gemini-2.0-flash` | 3rd |
+| Ollama (local) | *(none needed)* | `llama3.1` | manual only |
 
 Auto-detection scans environment variables in the order above and uses the first match. If you already have an API key set for any LLM tool (Claude Code, OpenAI Codex, etc.), code-teacher just works. Override with `--provider` and `--model` flags or `CODE_TEACHER_PROVIDER` / `CODE_TEACHER_MODEL` environment variables.
 
 ```bash
 code-teacher analyze my-project --provider openai --model gpt-4o
+```
+
+### Ollama (Local LLM)
+
+Run analysis with zero cost using a local Ollama instance. No API key required.
+
+```bash
+# Install Ollama: https://ollama.ai
+# Pull a model
+ollama pull llama3.1
+
+# Run code-teacher with Ollama
+code-teacher teach my-project --provider ollama
+code-teacher teach my-project --provider ollama --model mistral
+```
+
+Set a custom Ollama URL in `code-teacher.config.json`:
+
+```json
+{
+  "ollamaUrl": "http://localhost:11434/v1"
+}
 ```
 
 ## Output Modes
@@ -197,7 +223,7 @@ Custom agents run in Stage 1 alongside the three built-in agents. The Impact Ran
 
 TypeScript project organized into `cli/`, `agents/`, `core/`, `config/`, and `providers/` directories.
 
-The analysis runs as a two-stage pipeline. Stage 1 executes three agents in parallel (Dependency Mapper, Teachability Scorer, Structure Analyzer) plus any custom agents. Stage 2 runs the Impact Ranker, which receives all Stage 1 outputs and produces a final ranked list using composite scoring: blast radius (0.3), knowledge gate (0.25), refactor risk (0.25), combined teachability (0.2).
+The analysis pipeline is optimized for efficiency. Dependency mapping and impact ranking are computed statically (no LLM calls). By default, teachability scoring and structure analysis are combined into a single LLM call. This reduces the pipeline from 4 API calls (~155K tokens) to 1 API call (~15K tokens) — a 90% reduction. Use `--full-analysis` to restore the original separate-agent pipeline. Smart file sampling prioritizes the most important files (by dependency graph metrics) and caps at 50 files sent to the LLM.
 
 Results are cached using content-hash keys (SHA-256 of file contents + agent definitions). Cache is stored in `.code-teacher-cache/` -add this to your `.gitignore`. Cache invalidates automatically when file contents or agent definitions change.
 

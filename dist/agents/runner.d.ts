@@ -78,14 +78,14 @@ export declare function buildSystemPrompt(agent: AgentDefinition): string;
  */
 export declare function runAgent(options: AgentRunOptions): Promise<AgentResult>;
 /**
- * Returns absolute paths to all built-in agent definition files.
- *
- * Path resolution: This file compiles to dist/agents/runner.js at runtime.
- * The agent .md files are in agents/definitions/ (NOT in dist/).
- * Navigation: dist/agents/runner.js → ../../agents/definitions/
- *
- * import.meta.url is the ESM equivalent of __filename in CommonJS.
- * This approach works correctly when the package is installed via npm/GitHub.
+ * Returns absolute paths to built-in agent definition files.
+ * Uses the combined analyzer (1 LLM call) by default.
+ * The dependency-mapper is first (index 0) and is replaced by static parsing.
  */
 export declare function getBuiltInAgentPaths(): string[];
+/**
+ * Returns absolute paths for full analysis mode (original separate agents).
+ * Used when --full-analysis flag is passed.
+ */
+export declare function getFullAnalysisAgentPaths(): string[];
 //# sourceMappingURL=runner.d.ts.map

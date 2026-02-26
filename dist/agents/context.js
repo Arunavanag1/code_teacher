@@ -3,6 +3,7 @@
  * Builds file/project context windows for agents, managing token budgets
  * and prioritizing content (full -> summarized -> names only).
  */
+import { getCentrality, getEntryPoints } from '../core/dependency-graph.js';
 // ---------------------------------------------------------------------------
 // Token estimation
 // ---------------------------------------------------------------------------
@@ -23,6 +24,13 @@ export const MODEL_CONTEXT_LIMITS = {
     // Google
     'gemini-2.0-flash': 1_048_576,
     'gemini-2.5-flash': 1_048_576,
+    // Ollama (common local models)
+    'llama3.1': 128_000,
+    'llama3.2': 128_000,
+    mistral: 32_000,
+    codellama: 16_000,
+    'deepseek-coder': 16_000,
+    'qwen2.5-coder': 32_000,
 };
 const DEFAULT_CONTEXT_LIMIT = 128_000; // Conservative fallback for unknown models
 /**
@@ -117,6 +125,70 @@ export function buildProjectTree(files, projectPath) {
     const projectName = normalizedBase.split('/').pop() ?? 'project';
     const treeBody = renderTree(tree, '');
     return treeBody ? projectName + '/\n' + treeBody : projectName + '/';
+}
+// ---------------------------------------------------------------------------
+// File prioritization
+// ---------------------------------------------------------------------------
+/**
+ * Prioritizes files by importance using dependency graph metrics.
+ * Sorts by a weighted score: (fanIn * 0.4) + (centrality * 0.3) + (fanOut * 0.2) + (sizeScore * 0.1)
+ * Always includes entry points and high fan-in files.
+ * Returns at most maxFiles files.
+ */
+export function prioritizeFiles(files, projectPath, graph, maxFiles) {
+    if (!graph || files.length <= maxFiles)
+        return files;
+    const normalizedBase = projectPath.endsWith('/') ? projectPath.slice(0, -1) : projectPath;
+    // Build lookup from relative path to FileInfo
+    const relToFile = new Map();
+    for (const file of files) {
+        const rel = file.path.startsWith(normalizedBase + '/')
+            ? file.path.slice(normalizedBase.length + 1)
+            : file.path;
+        relToFile.set(rel, file);
+    }
+    // Compute in-degree (fan-in) and out-degree (fan-out) for all nodes
+    const inDegree = new Map();
+    const outDegree = new Map();
+    for (const id of graph.nodes.keys()) {
+        inDegree.set(id, 0);
+        outDegree.set(id, 0);
+    }
+    for (const edge of graph.edges) {
+        inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
+        outDegree.set(edge.source, (outDegree.get(edge.source) ?? 0) + 1);
+    }
+    // Get entry points and high fan-in files (always included)
+    const entryPointIds = new Set(getEntryPoints(graph));
+    const highFanInIds = new Set();
+    for (const [id, count] of inDegree) {
+        if (count >= 4)
+            highFanInIds.add(id);
+    }
+    // Score each file
+    const scored = [];
+    for (const file of files) {
+        const rel = file.path.startsWith(normalizedBase + '/')
+            ? file.path.slice(normalizedBase.length + 1)
+            : file.path;
+        const fanIn = inDegree.get(rel) ?? 0;
+        const fanOut = outDegree.get(rel) ?? 0;
+        const centrality = graph.nodes.has(rel) ? getCentrality(graph, rel) : 0;
+        // Normalize size: larger files often contain more logic (cap at 10)
+        const sizeScore = Math.min(10, file.lineCount / 50);
+        const priorityScore = fanIn * 0.4 + centrality * 0.3 + fanOut * 0.2 + sizeScore * 0.1;
+        const mustInclude = entryPointIds.has(rel) || highFanInIds.has(rel);
+        scored.push({ file, score: priorityScore, mustInclude });
+    }
+    // Sort by must-include first, then by score descending
+    scored.sort((a, b) => {
+        if (a.mustInclude && !b.mustInclude)
+            return -1;
+        if (!a.mustInclude && b.mustInclude)
+            return 1;
+        return b.score - a.score;
+    });
+    return scored.slice(0, maxFiles).map((s) => s.file);
 }
 /**
  * Assembles file content, project structure, and import maps into a single

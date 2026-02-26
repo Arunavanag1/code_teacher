@@ -13,6 +13,8 @@ export interface ConfigSchema {
     provider?: string;
     model?: string;
     customAgents?: string[];
+    maxAnalyzedFiles?: number;
+    ollamaUrl?: string;
 }
 /**
  * Errors found during config validation.

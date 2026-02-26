@@ -17,6 +17,7 @@ export interface AnalyzeOptions {
     provider?: string;
     model?: string;
     watch?: true;
+    fullAnalysis?: true;
 }
 /**
  * Resolved configuration combining config file values and CLI flag overrides.

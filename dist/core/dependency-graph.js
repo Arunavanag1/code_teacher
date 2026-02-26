@@ -119,6 +119,17 @@ export function buildGraph(mapperOutput, files) {
     return graph;
 }
 /**
+ * Builds a DependencyGraph from statically parsed import data.
+ * Used by the static import parser (P1) as an alternative to LLM-based mapping.
+ *
+ * @param nodes - Map of node ID to GraphNode from static analysis
+ * @param edges - Edge array from static import parsing
+ * @returns A populated DependencyGraph
+ */
+export function buildGraphFromStatic(nodes, edges) {
+    return { nodes, edges };
+}
+/**
  * Calculates how many nodes are reachable downstream from the given node.
  * Uses BFS following directed edges (source -> target).
  * Returns a normalized score from 0 to 10.
