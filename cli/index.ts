@@ -12,6 +12,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { analyzeCommand } from './commands/analyze.js';
 import type { AnalyzeOptions } from './commands/analyze.js';
+import { ConfigValidationError } from '../config/schema.js';
+import { ProviderDetectionError } from '../providers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,7 +42,23 @@ program
   .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
   .option('--model <name>', 'specific model to use')
   .action(async (path: string, options: AnalyzeOptions) => {
-    await analyzeCommand(path, options);
+    try {
+      await analyzeCommand(path, options);
+    } catch (err) {
+      if (err instanceof ConfigValidationError) {
+        console.error(`Invalid config: ${err.errors.length} error(s) found`);
+        for (const e of err.errors) {
+          console.error(`  - ${e}`);
+        }
+      } else if (err instanceof ProviderDetectionError) {
+        console.error(err.message);
+      } else if (err instanceof Error) {
+        console.error(`Error: ${err.message}`);
+      } else {
+        console.error('An unexpected error occurred.');
+      }
+      process.exitCode = 1;
+    }
   });
 
 program.on('command:*', (operands: string[]) => {
