@@ -48,7 +48,15 @@ async function walk(
   maxFileSize: number,
 ): Promise<FileInfo[]> {
   const results: FileInfo[] = [];
-  const entries = await readdir(join(baseDir, relDir), { withFileTypes: true });
+
+  // Wrap readdir so an unreadable subdirectory is skipped without crashing
+  let entries;
+  try {
+    entries = await readdir(join(baseDir, relDir), { withFileTypes: true });
+  } catch {
+    // Skip unreadable directory silently (permission denied, broken symlink, etc.)
+    return results;
+  }
 
   for (const entry of entries) {
     const relPath = relDir ? `${relDir}/${entry.name}` : entry.name;
@@ -58,39 +66,46 @@ async function walk(
     if (ig.ignores(relPath)) continue;
 
     if (entry.isDirectory()) {
-      // Recurse into subdirectory
+      // Recurse into subdirectory (walk already handles its own readdir errors)
       const subFiles = await walk(baseDir, relPath, ig, maxFileSize);
       results.push(...subFiles);
     } else if (entry.isFile()) {
-      // Get file stats
-      const fileStat = await stat(fullPath);
+      // Wrap per-file stat/read in try/catch so a single unreadable file
+      // does not abort the entire directory walk
+      try {
+        // Get file stats
+        const fileStat = await stat(fullPath);
 
-      // Check size limit before reading content
-      if (fileStat.size > maxFileSize) {
-        console.warn(
-          `Warning: Skipping ${relPath} (${fileStat.size} bytes exceeds maxFileSize of ${maxFileSize} bytes)`,
-        );
+        // Check size limit before reading content
+        if (fileStat.size > maxFileSize) {
+          console.warn(
+            `Warning: Skipping ${relPath} (${fileStat.size} bytes exceeds maxFileSize of ${maxFileSize} bytes)`,
+          );
+          continue;
+        }
+
+        // Read file content for binary detection and line counting
+        const content = await readFile(fullPath);
+
+        // Skip binary files silently
+        if (isBinary(content)) continue;
+
+        // Count lines
+        const textContent = content.toString('utf-8');
+        const rawLines = textContent.split('\n');
+        const lineCount =
+          rawLines[rawLines.length - 1] === '' ? rawLines.length - 1 : rawLines.length;
+
+        results.push({
+          path: resolve(fullPath),
+          extension: extname(entry.name).toLowerCase(),
+          size: fileStat.size,
+          lineCount,
+        });
+      } catch {
+        // Skip unreadable entry silently (permission denied, broken symlink, etc.)
         continue;
       }
-
-      // Read file content for binary detection and line counting
-      const content = await readFile(fullPath);
-
-      // Skip binary files silently
-      if (isBinary(content)) continue;
-
-      // Count lines
-      const textContent = content.toString('utf-8');
-      const rawLines = textContent.split('\n');
-      const lineCount =
-        rawLines[rawLines.length - 1] === '' ? rawLines.length - 1 : rawLines.length;
-
-      results.push({
-        path: resolve(fullPath),
-        extension: extname(entry.name).toLowerCase(),
-        size: fileStat.size,
-        lineCount,
-      });
     }
   }
 
