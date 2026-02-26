@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { analyzeCommand } from './commands/analyze.js';
 import type { AnalyzeOptions } from './commands/analyze.js';
+import { initCommand } from './commands/init.js';
 import { ConfigValidationError } from '../config/schema.js';
 import { ProviderDetectionError } from '../providers/index.js';
 
@@ -41,6 +42,7 @@ program
   .option('--json', 'output raw JSON instead of formatted terminal output')
   .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
   .option('--model <name>', 'specific model to use')
+  .option('--watch', 'watch for file changes and re-analyze automatically')
   .action(async (path: string, options: AnalyzeOptions) => {
     try {
       await analyzeCommand(path, options);
@@ -53,6 +55,24 @@ program
       } else if (err instanceof ProviderDetectionError) {
         console.error(err.message);
       } else if (err instanceof Error) {
+        console.error(`Error: ${err.message}`);
+      } else {
+        console.error('An unexpected error occurred.');
+      }
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command('init')
+  .description('Create a starter code-teacher.config.json in the current directory')
+  .argument('[path]', 'directory to create config in', '.')
+  .option('--force', 'overwrite existing config file')
+  .action(async (path: string, options: { force?: boolean }) => {
+    try {
+      await initCommand(path, options);
+    } catch (err) {
+      if (err instanceof Error) {
         console.error(`Error: ${err.message}`);
       } else {
         console.error('An unexpected error occurred.');
