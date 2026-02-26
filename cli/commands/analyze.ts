@@ -164,7 +164,19 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     console.log('');
     console.log('Discovering files...');
   }
-  const files = await discoverFiles(resolved.targetPath, resolved.ignore, resolved.maxFileSize);
+  let files;
+  try {
+    files = await discoverFiles(resolved.targetPath, resolved.ignore, resolved.maxFileSize);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(
+      `Cannot read directory: ${resolved.targetPath}. Check that the path exists and is accessible.`,
+    );
+    if (resolved.verbose) {
+      console.error(`  Detail: ${msg}`);
+    }
+    return;
+  }
 
   if (files.length === 0) {
     console.log('No analyzable files found. Check your ignore patterns.');
@@ -178,8 +190,12 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Chunk all discovered files
   const chunks = new Map<string, Chunk[]>();
   for (const file of files) {
-    const content = await readFile(file.path, 'utf-8');
-    chunks.set(file.path, chunkFile(content, file.path));
+    try {
+      const content = await readFile(file.path, 'utf-8');
+      chunks.set(file.path, chunkFile(content, file.path));
+    } catch {
+      console.warn(`Warning: Skipping ${file.path} (unreadable)`);
+    }
   }
 
   // Resolve built-in agent paths
