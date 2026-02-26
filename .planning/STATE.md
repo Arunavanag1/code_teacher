@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-25T22:05:00Z"
+last_updated: "2026-02-26T01:08:19Z"
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
+  total_plans: 18
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 6 complete (Terminal Output & Caching) — all 3 plans done. Ready for Phase 7.
+**Current focus:** Phase 7 in progress (Hardening & Extended Features) — plan 01 done, 2 remaining.
 
 ## Current Position
 
-Phase: 6 of 7 (Terminal Output & Caching) — Complete (3/3 plans done)
-Last activity: 2026-02-25 — Phase 6 fully executed (formatter.ts, renderer.ts, cache.ts, analyze.ts wiring)
+Phase: 7 of 7 (Hardening & Extended Features) — In Progress (1/3 plans done)
+Last activity: 2026-02-26 — Plan 07-01 executed (error handling, retry, resilience)
 
-Progress: [█████████████████░] ~86%
+Progress: [██████████████████] ~89%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: ~9 min
-- Total execution time: ~2.0 hours
+- Total plans completed: 16
+- Average duration: ~8 min
+- Total execution time: ~2.1 hours
 
 **By Phase:**
 
@@ -44,9 +44,10 @@ Progress: [█████████████████░] ~86%
 | 4. Agent Framework | 2/2 | ~38 min | ~19 min |
 | 5. Agent Definitions & Dependency Graph | 3/3 | ~11 min | ~4 min |
 | 6. Terminal Output & Caching | 3/3 | ~9 min | ~3 min |
+| 7. Hardening & Extended Features | 1/3 | ~4 min | ~4 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-03 (complete), 06-01 (complete), 06-02 (complete), 06-03 (complete)
+- Last 5 plans: 06-01 (complete), 06-02 (complete), 06-03 (complete), 07-01 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -112,6 +113,14 @@ Recent decisions affecting current work:
 - cache.ts: project-level caching (full snapshot) — per-file partial re-analysis deferred to Phase 7
 - analyze.ts: all progress console.log guarded with if (!resolved.json) for clean JSON output
 - analyze.ts: renderResults called in both cache-hit (early return) and cache-miss (after agents) paths
+- retry.ts: withRetry uses exponential backoff: 1s, 2s, 4s delays (baseDelay * 2^attempt), capped at 8s, max 3 retries
+- retry.ts: isRetryableError checks .status (429, 5xx), .code (ECONNRESET, ECONNREFUSED, ETIMEDOUT), and .message (timeout)
+- retry.ts: non-retryable errors (401, 400) thrown immediately without retries — zero new npm dependencies
+- runner.ts: both provider.call() wrapped with withRetry; JSON-parse retry (STRICT_JSON_SUFFIX) composes cleanly on top
+- cli/index.ts: top-level try/catch catches ConfigValidationError, ProviderDetectionError, generic Error — no stack traces
+- cli/index.ts: process.exitCode = 1 (not process.exit(1)) for clean event loop drain
+- analyze.ts: discoverFiles wrapped with "Cannot read directory" error; chunking readFile skips unreadable files with console.warn
+- file-discovery.ts: per-entry and per-subdirectory try/catch prevents single-file failures from aborting the walk
 
 ### Pending Todos
 
@@ -123,7 +132,7 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-25
-Stopped at: Phase 6 complete — all 3 plans executed (formatter.ts, renderer.ts, cache.ts, analyze.ts wiring)
-Resume file: .planning/phases/06-terminal-output-caching/06-02-SUMMARY.md
-Next: Phase 7 (Hardening & Extended Features) — plan first
+Last session: 2026-02-26
+Stopped at: Completed 07-01-PLAN.md (error handling, retry, resilience)
+Resume file: .planning/phases/07-hardening-extended-features/07-01-SUMMARY.md
+Next: Plan 07-02 (init command, custom agent loading, watch mode)
