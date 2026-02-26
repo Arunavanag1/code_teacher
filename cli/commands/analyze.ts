@@ -3,6 +3,7 @@
  * Coordinates file discovery, chunking, agent execution, and output rendering.
  */
 
+import { watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { loadConfig } from '../../config/schema.js';
@@ -38,6 +39,7 @@ export interface AnalyzeOptions {
   json?: true;
   provider?: string;
   model?: string;
+  watch?: true;
 }
 
 /**
@@ -296,6 +298,79 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Render results using the appropriate output mode
   const durationSec = (Date.now() - startTime) / 1000;
   renderResults(allResults, files, resolved, durationSec);
+
+  // Start watch mode if --watch flag is set
+  if (options.watch) {
+    watchForChanges(resolved.targetPath, resolved.ignore, async () => {
+      await analyzeCommand(path, { ...options, watch: undefined });
+    });
+  }
+}
+
+/**
+ * Watches the target directory for file changes and re-runs analysis.
+ * Uses fs.watch with recursive mode (Node.js 19.1+).
+ * Debounces rapid file changes with a 500ms delay.
+ *
+ * Filters out:
+ * - .code-teacher-cache/ directory (prevents infinite loops)
+ * - Files matching the configured ignore patterns
+ */
+function watchForChanges(
+  targetPath: string,
+  ignorePatterns: string[],
+  reanalyze: () => Promise<void>,
+): void {
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let isRunning = false;
+
+  console.log('');
+  console.log('Watching for file changes... (press Ctrl+C to stop)');
+
+  const watcher = watch(targetPath, { recursive: true }, (_eventType, filename) => {
+    if (!filename) return;
+
+    // Prevent infinite loop: ignore cache directory changes
+    if (filename.startsWith('.code-teacher-cache')) return;
+
+    // Ignore files matching configured ignore patterns
+    const shouldIgnore = ignorePatterns.some((pattern) => {
+      // Simple glob matching: exact match, prefix match, or extension match
+      if (filename === pattern) return true;
+      if (filename.startsWith(pattern + '/') || filename.startsWith(pattern + '\\')) return true;
+      // Handle glob patterns like *.min.js
+      if (pattern.startsWith('*')) {
+        return filename.endsWith(pattern.slice(1));
+      }
+      return false;
+    });
+    if (shouldIgnore) return;
+
+    // Debounce: wait 500ms after the last event before re-analyzing
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      if (isRunning) return;
+      isRunning = true;
+      console.log(`\nFile changed: ${filename}. Re-analyzing...`);
+      reanalyze()
+        .catch((err) => {
+          if (err instanceof Error) {
+            console.error(`Error during re-analysis: ${err.message}`);
+          }
+        })
+        .finally(() => {
+          isRunning = false;
+          console.log('\nWatching for file changes... (press Ctrl+C to stop)');
+        });
+    }, 500);
+  });
+
+  // Handle process termination
+  process.on('SIGINT', () => {
+    watcher.close();
+    console.log('\nStopped watching.');
+    process.exit(0);
+  });
 }
 
 // Re-export providerDefaults for callers that need the model map

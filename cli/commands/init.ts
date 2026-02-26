@@ -47,10 +47,7 @@ const STARTER_CONFIG = {
  * @param targetPath - Directory to create the config in (default: current directory)
  * @param options - Command options (--force to overwrite)
  */
-export async function initCommand(
-  targetPath: string,
-  options: { force?: boolean },
-): Promise<void> {
+export async function initCommand(targetPath: string, options: { force?: boolean }): Promise<void> {
   const resolvedPath = resolve(targetPath);
   const configPath = join(resolvedPath, 'code-teacher.config.json');
 
