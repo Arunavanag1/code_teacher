@@ -130,10 +130,8 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     );
   }
 
-  // Print resolved config as confirmation (actual analysis comes in later phases)
-  if (resolved.json) {
-    console.log(JSON.stringify(resolved, null, 2));
-  } else {
+  // Print resolved config as confirmation (suppressed in JSON mode for clean output)
+  if (!resolved.json) {
     console.log('');
     console.log(`Target:    ${resolved.targetPath}`);
     console.log(`Mode:      ${resolved.mode}`);
@@ -162,8 +160,10 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   const provider = createProvider(detected.provider, detected.model);
 
   // Discover files in the target project
-  console.log('');
-  console.log('Discovering files...');
+  if (!resolved.json) {
+    console.log('');
+    console.log('Discovering files...');
+  }
   const files = await discoverFiles(resolved.targetPath, resolved.ignore, resolved.maxFileSize);
 
   if (files.length === 0) {
@@ -171,7 +171,9 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     return;
   }
 
-  console.log(`Found ${files.length} file(s). Chunking...`);
+  if (!resolved.json) {
+    console.log(`Found ${files.length} file(s). Chunking...`);
+  }
 
   // Chunk all discovered files
   const chunks = new Map<string, Chunk[]>();
@@ -207,22 +209,10 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   if (cached && Array.isArray(cached)) {
     if (!resolved.json) {
       console.log('Cache hit \u2014 using cached results.');
-      console.log('');
     }
     const durationSec = (Date.now() - startTime) / 1000;
     const cachedResults = cached as AgentResult[];
-    if (resolved.json) {
-      console.log(JSON.stringify(cachedResults, null, 2));
-    } else {
-      for (const result of cachedResults) {
-        console.log(`Agent: ${result.agentName}`);
-        console.log(`Output keys: ${Object.keys(result.output).join(', ')}`);
-        console.log('');
-      }
-      console.log(
-        `Analysis complete (cached). ${cachedResults.length} agents. ${durationSec.toFixed(1)}s`,
-      );
-    }
+    renderResults(cachedResults, files, resolved, durationSec);
     return;
   }
 
@@ -246,26 +236,10 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     ),
   );
 
-  // Print results summary
-  for (const result of stage1Results) {
-    console.log(`Agent: ${result.agentName}`);
-    console.log(
-      `Tokens: ${result.tokenUsage.inputTokens} in / ${result.tokenUsage.outputTokens} out`,
-    );
-    if (resolved.verbose) {
-      console.log('Raw output:');
-      console.log(result.rawContent);
-    }
-    if (resolved.json) {
-      console.log(JSON.stringify(result.output, null, 2));
-    } else {
-      console.log(`Output keys: ${Object.keys(result.output).join(', ')}`);
-    }
-    console.log('');
-  }
-
   // Stage 2: Run impact ranker sequentially — receives all Stage 1 outputs
-  console.log('Running Stage 2 (Impact Ranker)...');
+  if (!resolved.json) {
+    console.log('Running Stage 2 (Impact Ranker)...');
+  }
   const stage2Path = allAgentPaths[3]; // impact-ranker.md is the 4th built-in agent
   const stage2Result = await runAgent({
     agentPath: stage2Path,
@@ -277,31 +251,15 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     stage1Outputs: stage1Results,
   });
 
-  // Print Stage 2 result
-  console.log(`Agent: ${stage2Result.agentName}`);
-  console.log(
-    `Tokens: ${stage2Result.tokenUsage.inputTokens} in / ${stage2Result.tokenUsage.outputTokens} out`,
-  );
-  if (resolved.verbose) {
-    console.log('Raw output:');
-    console.log(stage2Result.rawContent);
-  }
-  if (resolved.json) {
-    console.log(JSON.stringify(stage2Result.output, null, 2));
-  } else {
-    console.log(`Output keys: ${Object.keys(stage2Result.output).join(', ')}`);
-  }
-  console.log('');
-
-  // Collect all results for Phase 6 rendering
-  const allResults = [...stage1Results, stage2Result];
+  // Collect all results and render output
+  const allResults: AgentResult[] = [...stage1Results, stage2Result];
 
   // Cache the results for future runs
   await setCached(cacheKey, allResults, cacheDir);
 
-  console.log(
-    `Analysis complete. ${allResults.length} agents produced results. Full rendering coming in Phase 6.`,
-  );
+  // Render results using the appropriate output mode
+  const durationSec = (Date.now() - startTime) / 1000;
+  renderResults(allResults, files, resolved, durationSec);
 }
 
 // Re-export providerDefaults for callers that need the model map

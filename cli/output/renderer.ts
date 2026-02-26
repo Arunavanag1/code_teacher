@@ -250,17 +250,14 @@ function renderStructureDecisions(allResults: AgentResult[], topN: number): stri
     const chosen = typeof d.chosenStructure === 'string' ? d.chosenStructure : 'Unknown';
     const alternatives = Array.isArray(d.alternatives) ? (d.alternatives as string[]) : [];
     const reasoning = typeof d.reasoning === 'string' ? d.reasoning : '';
-    const perfImpact =
-      typeof d.performanceImplication === 'string' ? d.performanceImplication : '';
+    const perfImpact = typeof d.performanceImplication === 'string' ? d.performanceImplication : '';
 
     lines.push(
       ` ${ANSI.bold}\u2022${ANSI.reset}  ${ANSI.cyan}${file}:${startLine}-${endLine}${ANSI.reset}`,
     );
     lines.push(`    ${ANSI.gray}Chose:${ANSI.reset} ${ANSI.white}${chosen}${ANSI.reset}`);
     if (alternatives.length > 0) {
-      lines.push(
-        `    ${ANSI.gray}Over:${ANSI.reset} ${ANSI.white}${alternatives[0]}${ANSI.reset}`,
-      );
+      lines.push(`    ${ANSI.gray}Over:${ANSI.reset} ${ANSI.white}${alternatives[0]}${ANSI.reset}`);
     }
     if (reasoning) {
       lines.push(`    ${ANSI.gray}Why it matters:${ANSI.reset} ${reasoning}`);
@@ -302,11 +299,7 @@ function renderSummaryOutput(
  * { project, timestamp, filesAnalyzed, languages, highImpactSections,
  *   teachableSections, dataStructureDecisions, dependencyGraph }
  */
-function renderJSON(
-  allResults: AgentResult[],
-  files: FileInfo[],
-  resolved: ResolvedConfig,
-): void {
+function renderJSON(allResults: AgentResult[], files: FileInfo[], resolved: ResolvedConfig): void {
   const impactResult = findResult(allResults, 'Impact Ranker');
   const teachResult = findResult(allResults, 'Teachability Scorer');
   const structResult = findResult(allResults, 'Structure Analyzer');
