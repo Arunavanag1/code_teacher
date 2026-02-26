@@ -17,10 +17,10 @@ code-teacher is **language-agnostic**. It uses LLM-powered agents defined in mar
 
 ```bash
 # Install globally from GitHub
-npm install -g github:USERNAME/code-teacher
+npm install -g github:Arunavanag1/code_teacher
 
 # Or run without installing
-npx github:USERNAME/code-teacher teach ./my-project
+npx github:Arunavanag1/code_teacher teach ./my-project
 ```
 
 ## Quick Start
@@ -30,7 +30,7 @@ npx github:USERNAME/code-teacher teach ./my-project
 export ANTHROPIC_API_KEY="sk-ant-..."
 
 # 2. Install
-npm install -g github:USERNAME/code-teacher
+npm install -g github:Arunavanag1/code_teacher
 
 # 3. Run your first analysis
 code-teacher teach .
