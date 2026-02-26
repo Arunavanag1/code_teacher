@@ -67,10 +67,7 @@ export async function analyzeCommand(path, options) {
         }
     }
     else {
-        const hint = process.env.CLAUDECODE
-            ? '\n\nTip: You\'re running inside Claude Code, which uses its own auth.\ncode-teacher needs its own API key. Run:\n  export ANTHROPIC_API_KEY="your-key-here"'
-            : '';
-        console.error(`No LLM provider detected. Set one of these environment variables:\n  ANTHROPIC_API_KEY\n  OPENAI_API_KEY\n  GOOGLE_API_KEY\n\nOr use --provider to configure.${hint}`);
+        console.error(`No LLM provider detected.\n\nSave your key once (works everywhere, including Claude Code and Codex):\n  code-teacher set-key anthropic sk-ant-...\n  code-teacher set-key openai sk-...\n  code-teacher set-key google AIza...\n\nOr set an environment variable:\n  export ANTHROPIC_API_KEY="sk-ant-..."`);
         return;
     }
     // Print resolved config as confirmation (suppressed in JSON mode for clean output)

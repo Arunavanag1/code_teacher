@@ -10,11 +10,16 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { analyzeCommand } from './commands/analyze.js';
 import { initCommand } from './commands/init.js';
+import { setKeyCommand } from './commands/set-key.js';
 import { runTeachings } from './commands/teachings.js';
 import { runSections } from './commands/sections.js';
 import { runStructures } from './commands/structures.js';
 import { ConfigValidationError } from '../config/schema.js';
 import { ProviderDetectionError } from '../providers/index.js';
+import { injectCredentials } from '../core/credentials.js';
+// Inject saved credentials from ~/.code-teacher/credentials.json
+// so API keys persist across all environments (Claude Code, Codex, etc.)
+injectCredentials();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
@@ -118,6 +123,14 @@ program
         }
         process.exitCode = 1;
     }
+});
+program
+    .command('set-key')
+    .description('Save an API key so code-teacher works in any environment (Claude Code, Codex, etc.)')
+    .argument('<provider>', "provider name: 'anthropic', 'openai', or 'google'")
+    .argument('<key>', 'your API key')
+    .action(async (provider, key) => {
+    await setKeyCommand(provider, key);
 });
 registerFocusedCommand('teach', 'Show the top teachable code sections in the codebase', runTeachings);
 registerFocusedCommand('impact', 'Show the highest-impact, most-depended-on code sections', runSections);

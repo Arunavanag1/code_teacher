@@ -26,19 +26,19 @@ npx github:Arunavanag1/code_teacher teach my-project
 ## Quick Start
 
 ```bash
-# 1. Set your API key (whichever provider you have)
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# 2. Install
+# 1. Install
 npm install -g github:Arunavanag1/code_teacher
+
+# 2. Save your API key (one time - works everywhere including Claude Code and Codex)
+code-teacher set-key anthropic sk-ant-...
 
 # 3. Run your first analysis
 code-teacher teach my-project
 ```
 
-Auto-detection just works - if you already have an API key set for any supported provider, code-teacher finds it automatically.
+`set-key` saves your key to `~/.code-teacher/credentials.json` so it works in every environment - regular terminal, Claude Code, Codex, CI. You only need to do this once.
 
-> **Using Claude Code or Codex?** These tools use their own authentication and don't expose API keys to child processes. You'll need to set your own API key (`export ANTHROPIC_API_KEY="..."` or `export OPENAI_API_KEY="..."`) before running code-teacher.
+Alternatively, set an environment variable: `export ANTHROPIC_API_KEY="sk-ant-..."`
 
 ## Commands
 
@@ -112,6 +112,16 @@ Creates a starter `code-teacher.config.json` in the specified directory.
 ```bash
 code-teacher init my-project
 code-teacher init my-project --force   # overwrite existing config
+```
+
+### `set-key`
+
+Save an API key so code-teacher works in any environment. Keys are stored in `~/.code-teacher/credentials.json`.
+
+```bash
+code-teacher set-key anthropic sk-ant-...
+code-teacher set-key openai sk-...
+code-teacher set-key google AIza...
 ```
 
 ### Other Commands
