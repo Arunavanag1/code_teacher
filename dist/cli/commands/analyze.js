@@ -67,7 +67,11 @@ export async function analyzeCommand(path, options) {
         }
     }
     else {
-        console.log('No LLM provider detected. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or use --provider to configure.');
+        const hint = process.env.CLAUDECODE
+            ? '\n\nTip: You\'re running inside Claude Code, which uses its own auth.\ncode-teacher needs its own API key. Run:\n  export ANTHROPIC_API_KEY="your-key-here"'
+            : '';
+        console.error(`No LLM provider detected. Set one of these environment variables:\n  ANTHROPIC_API_KEY\n  OPENAI_API_KEY\n  GOOGLE_API_KEY\n\nOr use --provider to configure.${hint}`);
+        return;
     }
     // Print resolved config as confirmation (suppressed in JSON mode for clean output)
     if (!resolved.json) {
@@ -85,11 +89,6 @@ export async function analyzeCommand(path, options) {
             console.log('Full resolved configuration:');
             console.log(JSON.stringify(resolved, null, 2));
         }
-    }
-    // Exit early if no provider detected
-    if (!detected) {
-        console.log('No LLM provider detected. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or use --provider to configure.');
-        return;
     }
     // Create the LLM provider instance
     const provider = createProvider(detected.provider, detected.model);

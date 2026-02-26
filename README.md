@@ -38,6 +38,8 @@ code-teacher teach my-project
 
 Auto-detection just works - if you already have an API key set for any supported provider, code-teacher finds it automatically.
 
+> **Using Claude Code or Codex?** These tools use their own authentication and don't expose API keys to child processes. You'll need to set your own API key (`export ANTHROPIC_API_KEY="..."` or `export OPENAI_API_KEY="..."`) before running code-teacher.
+
 ## Commands
 
 ### Focused Commands
