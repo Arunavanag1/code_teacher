@@ -3,7 +3,8 @@
  * Supports summary (default), verbose, and JSON output modes.
  * Consumes AgentResult arrays and uses formatter.ts for visual styling.
  */
-import { basename, extname } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { basename, extname, join, resolve } from 'node:path';
 import { ANSI, formatHeader, formatSectionHeader, formatScore, formatRiskLabel, padRight, } from './formatter.js';
 /**
  * Finds an AgentResult by agentName string (not by array index).
@@ -68,6 +69,107 @@ function getOutputString(result, field) {
     const value = result.output[field];
     return typeof value === 'string' ? value : '';
 }
+/** Maximum number of code lines to display per snippet */
+const MAX_SNIPPET_LINES = 20;
+/**
+ * Reads a code snippet from disk and formats it with line numbers.
+ * Resolves the file path relative to projectPath, trying multiple strategies.
+ * Returns an empty string if the file cannot be read or lines are out of range.
+ *
+ * If the range exceeds MAX_SNIPPET_LINES, shows the first and last portions
+ * with a "... (N lines omitted)" marker in between.
+ */
+function readCodeSnippet(projectPath, relativeFile, startLine, endLine) {
+    if (startLine <= 0 || endLine <= 0 || endLine < startLine)
+        return '';
+    // Try resolving the file path
+    const candidates = [
+        join(projectPath, relativeFile),
+        resolve(projectPath, relativeFile),
+        relativeFile, // Already absolute
+    ];
+    let allLines = null;
+    for (const candidate of candidates) {
+        try {
+            allLines = readFileSync(candidate, 'utf-8').split('\n');
+            break;
+        }
+        catch {
+            // Try next candidate
+        }
+    }
+    if (!allLines)
+        return '';
+    // Clamp to actual file bounds
+    const clampedStart = Math.max(1, startLine);
+    const clampedEnd = Math.min(allLines.length, endLine);
+    if (clampedStart > allLines.length)
+        return '';
+    const selectedLines = allLines.slice(clampedStart - 1, clampedEnd);
+    const totalLines = selectedLines.length;
+    // Line number gutter width (based on the largest line number)
+    const gutterWidth = String(clampedEnd).length;
+    let snippetLines;
+    if (totalLines <= MAX_SNIPPET_LINES) {
+        // Show all lines
+        snippetLines = selectedLines.map((line, i) => {
+            const lineNum = String(clampedStart + i).padStart(gutterWidth);
+            return `     ${ANSI.dim}${lineNum}${ANSI.reset} ${ANSI.gray}│${ANSI.reset} ${line}`;
+        });
+    }
+    else {
+        // Show first portion, ellipsis, last portion
+        const headCount = Math.floor(MAX_SNIPPET_LINES * 0.6);
+        const tailCount = MAX_SNIPPET_LINES - headCount - 1; // -1 for the ellipsis line
+        const omittedCount = totalLines - headCount - tailCount;
+        const headLines = selectedLines.slice(0, headCount).map((line, i) => {
+            const lineNum = String(clampedStart + i).padStart(gutterWidth);
+            return `     ${ANSI.dim}${lineNum}${ANSI.reset} ${ANSI.gray}│${ANSI.reset} ${line}`;
+        });
+        const ellipsis = `     ${ANSI.dim}${' '.repeat(gutterWidth)}${ANSI.reset} ${ANSI.gray}│ ... (${omittedCount} lines omitted)${ANSI.reset}`;
+        const tailStart = totalLines - tailCount;
+        const tailLines = selectedLines.slice(tailStart).map((line, i) => {
+            const lineNum = String(clampedStart + tailStart + i).padStart(gutterWidth);
+            return `     ${ANSI.dim}${lineNum}${ANSI.reset} ${ANSI.gray}│${ANSI.reset} ${line}`;
+        });
+        snippetLines = [...headLines, ellipsis, ...tailLines];
+    }
+    // Add top and bottom borders
+    const borderWidth = 50;
+    const topBorder = `     ${ANSI.dim}${' '.repeat(gutterWidth)} ╭${'─'.repeat(borderWidth)}${ANSI.reset}`;
+    const bottomBorder = `     ${ANSI.dim}${' '.repeat(gutterWidth)} ╰${'─'.repeat(borderWidth)}${ANSI.reset}`;
+    return [topBorder, ...snippetLines, bottomBorder].join('\n');
+}
+/**
+ * Reads a code snippet as plain text (no ANSI codes) for JSON output.
+ * Returns an empty string if the file cannot be read.
+ */
+function readCodeSnippetPlain(projectPath, relativeFile, startLine, endLine) {
+    if (startLine <= 0 || endLine <= 0 || endLine < startLine)
+        return '';
+    const candidates = [
+        join(projectPath, relativeFile),
+        resolve(projectPath, relativeFile),
+        relativeFile,
+    ];
+    let allLines = null;
+    for (const candidate of candidates) {
+        try {
+            allLines = readFileSync(candidate, 'utf-8').split('\n');
+            break;
+        }
+        catch {
+            // Try next candidate
+        }
+    }
+    if (!allLines)
+        return '';
+    const clampedStart = Math.max(1, startLine);
+    const clampedEnd = Math.min(allLines.length, endLine);
+    if (clampedStart > allLines.length)
+        return '';
+    return allLines.slice(clampedStart - 1, clampedEnd).join('\n');
+}
 /**
  * Renders the High-Impact Sections from the impact-ranker output.
  * Cross-references fan-in from the dependency-mapper nodes.
@@ -77,7 +179,7 @@ function getOutputString(result, field) {
  *       "summary text..."
  *       Fan-in: N | Blast radius: LABEL | Refactor risk: LABEL
  */
-function renderHighImpact(allResults, topN) {
+function renderHighImpact(allResults, topN, projectPath) {
     const impactResult = findResult(allResults, 'Impact Ranker');
     const mapperResult = findResult(allResults, 'Dependency Mapper');
     const sections = getOutputArray(impactResult, 'rankedSections').slice(0, topN);
@@ -129,6 +231,11 @@ function renderHighImpact(allResults, topN) {
             lines[lines.length - 1] = lines[lines.length - 1] + `"${ANSI.reset}`;
         }
         lines.push(`     ${ANSI.gray}Fan-in: ${fanIn} | Blast radius: ${formatRiskLabel(blastRadius)} ${ANSI.gray}| Refactor risk: ${formatRiskLabel(refactorRisk)}${ANSI.reset}`);
+        // Show code snippet
+        const snippet = readCodeSnippet(projectPath, file, startLine, endLine);
+        if (snippet) {
+            lines.push(snippet);
+        }
         lines.push('');
     }
     if (narrative) {
@@ -146,7 +253,7 @@ function renderHighImpact(allResults, topN) {
  *       Concepts: concept1, concept2, ...
  *       Prerequisites: prereq1, prereq2, ...
  */
-function renderTeachable(allResults, topN) {
+function renderTeachable(allResults, topN, projectPath) {
     const teachResult = findResult(allResults, 'Teachability Scorer');
     const sections = getOutputArray(teachResult, 'sections')
         .sort((a, b) => {
@@ -181,6 +288,11 @@ function renderTeachable(allResults, topN) {
         }
         if (prerequisites) {
             lines.push(`     ${ANSI.gray}Prerequisites: ${ANSI.white}${prerequisites}${ANSI.reset}`);
+        }
+        // Show code snippet
+        const snippet = readCodeSnippet(projectPath, file, startLine, endLine);
+        if (snippet) {
+            lines.push(snippet);
         }
         lines.push('');
     }
@@ -244,10 +356,10 @@ function renderSummaryOutput(allResults, files, resolved, durationSec) {
     // Render sections based on mode (default 'all' renders everything)
     const mode = resolved.mode;
     if (mode === 'all' || mode === 'sections') {
-        console.log(renderHighImpact(allResults, resolved.topN));
+        console.log(renderHighImpact(allResults, resolved.topN, resolved.targetPath));
     }
     if (mode === 'all' || mode === 'teachings') {
-        console.log(renderTeachable(allResults, resolved.topN));
+        console.log(renderTeachable(allResults, resolved.topN, resolved.targetPath));
     }
     if (mode === 'all' || mode === 'structures') {
         console.log(renderStructureDecisions(allResults, resolved.topN));
@@ -270,13 +382,25 @@ function renderJSON(allResults, files, resolved) {
         filesAnalyzed: files.length,
         languages: deriveLanguages(files),
     };
-    // Include section-specific fields based on mode
+    // Include section-specific fields based on mode, enriched with code snippets
     const mode = resolved.mode;
     if (mode === 'all' || mode === 'sections') {
-        output.highImpactSections = impactResult?.output?.rankedSections ?? [];
+        const sections = Array.isArray(impactResult?.output?.rankedSections)
+            ? impactResult.output.rankedSections
+            : [];
+        output.highImpactSections = sections.map((s) => ({
+            ...s,
+            codeSnippet: readCodeSnippetPlain(resolved.targetPath, typeof s.file === 'string' ? s.file : '', typeof s.startLine === 'number' ? s.startLine : 0, typeof s.endLine === 'number' ? s.endLine : 0),
+        }));
     }
     if (mode === 'all' || mode === 'teachings') {
-        output.teachableSections = teachResult?.output?.sections ?? [];
+        const sections = Array.isArray(teachResult?.output?.sections)
+            ? teachResult.output.sections
+            : [];
+        output.teachableSections = sections.map((s) => ({
+            ...s,
+            codeSnippet: readCodeSnippetPlain(resolved.targetPath, typeof s.file === 'string' ? s.file : '', typeof s.startLine === 'number' ? s.startLine : 0, typeof s.endLine === 'number' ? s.endLine : 0),
+        }));
     }
     if (mode === 'all' || mode === 'structures') {
         output.dataStructureDecisions = structResult?.output?.decisions ?? [];
