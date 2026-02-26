@@ -13,6 +13,9 @@ import { dirname, join } from 'node:path';
 import { analyzeCommand } from './commands/analyze.js';
 import type { AnalyzeOptions } from './commands/analyze.js';
 import { initCommand } from './commands/init.js';
+import { runTeachings } from './commands/teachings.js';
+import { runSections } from './commands/sections.js';
+import { runStructures } from './commands/structures.js';
 import { ConfigValidationError } from '../config/schema.js';
 import { ProviderDetectionError } from '../providers/index.js';
 
@@ -30,6 +33,48 @@ program
     'Analyzes codebases to surface teachable sections, high-impact sections, and data structure decisions',
   )
   .version(pkg.version, '-V, --version', 'output the current version');
+
+/**
+ * Registers a focused command that runs analysis in a specific mode.
+ * All three commands (teach, impact, structures) share the same flags
+ * as analyze minus --mode, and the same error handling pattern.
+ */
+function registerFocusedCommand(
+  name: string,
+  description: string,
+  handler: (path: string, options: AnalyzeOptions) => Promise<void>,
+): void {
+  program
+    .command(name)
+    .description(description)
+    .argument('[path]', 'path to the project to analyze', '.')
+    .option('--file <path>', 'analyze a specific file instead of full project')
+    .option('--verbose', 'show agent reasoning traces')
+    .option('--top <n>', 'number of top results to show (default: 5)')
+    .option('--json', 'output raw JSON instead of formatted terminal output')
+    .option('--provider <name>', "LLM provider: 'anthropic', 'openai', or 'google'")
+    .option('--model <name>', 'specific model to use')
+    .option('--watch', 'watch for file changes and re-analyze automatically')
+    .action(async (path: string, options: AnalyzeOptions) => {
+      try {
+        await handler(path, options);
+      } catch (err) {
+        if (err instanceof ConfigValidationError) {
+          console.error(`Invalid config: ${err.errors.length} error(s) found`);
+          for (const e of err.errors) {
+            console.error(`  - ${e}`);
+          }
+        } else if (err instanceof ProviderDetectionError) {
+          console.error(err.message);
+        } else if (err instanceof Error) {
+          console.error(`Error: ${err.message}`);
+        } else {
+          console.error('An unexpected error occurred.');
+        }
+        process.exitCode = 1;
+      }
+    });
+}
 
 program
   .command('analyze')
@@ -80,6 +125,24 @@ program
       process.exitCode = 1;
     }
   });
+
+registerFocusedCommand(
+  'teach',
+  'Show the top teachable code sections in the codebase',
+  runTeachings,
+);
+
+registerFocusedCommand(
+  'impact',
+  'Show the highest-impact, most-depended-on code sections',
+  runSections,
+);
+
+registerFocusedCommand(
+  'structures',
+  'Show key data structure decisions and their trade-offs',
+  runStructures,
+);
 
 program.on('command:*', (operands: string[]) => {
   console.error(`error: unknown command '${operands[0]}'`);
