@@ -1,21 +1,26 @@
 {
   "name": "code-teacher",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CLI tool that analyzes codebases to surface teachable sections, high-impact sections, and data structure decisions",
   "main": "dist/cli/index.js",
   "bin": {
     "code-teacher": "dist/cli/index.js"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli/index.js",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist/",
-    "agents/definitions/"
+    "agents/definitions/",
+    "README.md"
   ],
   "repository": {
     "type": "git",
@@ -23,10 +28,15 @@
   },
   "keywords": [
     "code-analysis",
+    "codebase",
     "teaching",
+    "learning",
     "cli",
     "llm",
-    "codebase"
+    "ai",
+    "dependency-analysis",
+    "code-review",
+    "developer-tools"
   ],
   "author": "",
   "license": "ISC",
