@@ -1,0 +1,1 @@
+{"version":3,"file":"structures.js","sourceRoot":"","sources":["../../../cli/commands/structures.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,OAAO,EAAE,cAAc,EAAE,MAAM,cAAc,CAAC;AAG9C;;;GAGG;AACH,MAAM,CAAC,KAAK,UAAU,aAAa,CAAC,IAAY,EAAE,OAAuB;IACvE,MAAM,cAAc,CAAC,IAAI,EAAE,EAAE,GAAG,OAAO,EAAE,IAAI,EAAE,YAAY,EAAE,CAAC,CAAC;AACjE,CAAC"}
