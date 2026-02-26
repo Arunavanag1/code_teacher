@@ -1,17 +1,17 @@
 # code-teacher
 
-Analyze any codebase to find what's worth learning, what's risky to change, and why.
+A CLI tool that analyzes codebases to surface three categories of insight:
 
-- **`teach`** — surfaces the most educational code: patterns, algorithms, and clean implementations
-- **`impact`** — ranks files by blast radius, fan-in, and refactor risk (fully static, instant, no API key)
-- **`structures`** — explains key data structure choices and their trade-offs
+- **Teachable Sections** - Code that best demonstrates patterns, techniques, and concepts valuable for learning
+- **High-Impact Sections** - Code with the most dependencies, downstream influence, and architectural significance
+- **Data Structure Decisions** - Key structural choices (why a hashmap over a tree, why a queue over a stack) and their trade-offs
 
-Language-agnostic. Works on any codebase. Supports Anthropic, OpenAI, Google, and local Ollama models.
+code-teacher is **language-agnostic**. It uses LLM-powered agents defined in markdown, so it reasons about any programming language without hardcoded parsers.
 
 ## Requirements
 
 - **Node.js** >= 22.0.0
-- An API key for at least one supported provider ([Anthropic](https://console.anthropic.com/), [OpenAI](https://platform.openai.com/), or [Google](https://aistudio.google.com/)) — or [Ollama](https://ollama.ai) for free local inference
+- An API key for at least one supported provider: [Anthropic](https://console.anthropic.com/) (Claude), [OpenAI](https://platform.openai.com/) (GPT), or [Google](https://aistudio.google.com/) (Gemini)
 
 ## Installation
 
