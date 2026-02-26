@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: LLM Provider System** - Provider abstraction, three SDK integrations, auto-detection logic
 - [x] **Phase 4: Agent Framework** - Markdown agent parser, runner, context builder with token management
 - [x] **Phase 5: Agent Definitions & Dependency Graph** - Four agent markdown files, dependency graph, two-stage pipeline
-- [ ] **Phase 6: Terminal Output & Caching** - ANSI formatter, three output modes, content-hash cache
+- [x] **Phase 6: Terminal Output & Caching** - ANSI formatter, three output modes, content-hash cache
 - [ ] **Phase 7: Hardening & Extended Features** - Error handling, watch mode, init command, custom agents, real-world testing
 
 ## Phase Details
@@ -117,9 +117,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Implement formatter.ts — ANSI colors, Unicode box-drawing, score bars, terminal width detection
-- [ ] 06-02: Implement renderer.ts — summary, verbose, and JSON output modes
-- [ ] 06-03: Implement cache.ts — content-hash keys, .code-teacher-cache/ management, partial re-analysis
+- [x] 06-01: Implement formatter.ts — ANSI colors, Unicode box-drawing, score bars, terminal width detection
+- [x] 06-02: Implement renderer.ts — summary, verbose, and JSON output modes
+- [x] 06-03: Implement cache.ts — content-hash keys, .code-teacher-cache/ management, partial re-analysis
 
 ### Phase 7: Hardening & Extended Features
 **Goal**: Production-ready error handling, extended CLI commands, custom agents, and validated against real repos
@@ -153,5 +153,5 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 | 3. LLM Provider System | 2/2 | Complete | 2026-02-25 |
 | 4. Agent Framework | 2/2 | Complete | 2026-02-25 |
 | 5. Agent Definitions & Dependency Graph | 3/3 | Complete | 2026-02-25 |
-| 6. Terminal Output & Caching | 0/3 | Not started | - |
+| 6. Terminal Output & Caching | 3/3 | Complete | 2026-02-25 |
 | 7. Hardening & Extended Features | 0/3 | Not started | - |

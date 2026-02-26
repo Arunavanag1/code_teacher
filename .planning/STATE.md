@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-25T21:47:37Z"
+last_updated: "2026-02-25T22:05:00Z"
 progress:
   total_phases: 7
-  completed_phases: 5
-  total_plans: 14
-  completed_plans: 12
+  completed_phases: 6
+  total_plans: 15
+  completed_plans: 15
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-25)
 
 **Core value:** Accurate, genuinely useful analysis — @important-sections identifies code that matters most, @important-teachings surfaces code valuable for learning
-**Current focus:** Phase 6 in progress (Terminal Output & Caching) — Plan 06-01 done, 2 plans remaining
+**Current focus:** Phase 6 complete (Terminal Output & Caching) — all 3 plans done. Ready for Phase 7.
 
 ## Current Position
 
-Phase: 6 of 7 (Terminal Output & Caching) — In Progress (1/3 plans done)
-Last activity: 2026-02-25 — Plan 06-01 executed (formatter.ts: ANSI colors, Unicode box-drawing header, score/risk formatting, terminal width utilities)
+Phase: 6 of 7 (Terminal Output & Caching) — Complete (3/3 plans done)
+Last activity: 2026-02-25 — Phase 6 fully executed (formatter.ts, renderer.ts, cache.ts, analyze.ts wiring)
 
-Progress: [█████████████░] ~71%
+Progress: [█████████████████░] ~86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: ~11 min
-- Total execution time: ~1.7 hours
+- Total plans completed: 15
+- Average duration: ~9 min
+- Total execution time: ~2.0 hours
 
 **By Phase:**
 
@@ -43,10 +43,10 @@ Progress: [█████████████░] ~71%
 | 3. LLM Provider System | 2/2 | ~40 min | ~20 min |
 | 4. Agent Framework | 2/2 | ~38 min | ~19 min |
 | 5. Agent Definitions & Dependency Graph | 3/3 | ~11 min | ~4 min |
-| 6. Terminal Output & Caching | 1/3 | ~2 min | ~2 min |
+| 6. Terminal Output & Caching | 3/3 | ~9 min | ~3 min |
 
 **Recent Trend:**
-- Last 5 plans: 05-01 (complete), 05-03 (complete), 05-02 (complete), 06-01 (complete)
+- Last 5 plans: 05-03 (complete), 06-01 (complete), 06-02 (complete), 06-03 (complete)
 - Trend: Accelerating
 
 *Updated after each plan completion*
@@ -103,6 +103,15 @@ Recent decisions affecting current work:
 - formatter.ts: getTerminalWidth enforces minimum 60 chars; defaults to 80 when piped
 - formatter.ts: score thresholds consistent: 8+ green, 4+ yellow, <4 red (formatScore and formatRiskLabel)
 - formatter.ts: formatSectionHeader divider capped at 60 chars matching spec proportions
+- renderer.ts: renderResults is the ONLY export — mode selection is internal implementation detail
+- renderer.ts: fan-in lookup tries exact path match then suffix match for robustness
+- renderer.ts: verbose mode reuses renderSummaryOutput to avoid code duplication
+- renderer.ts: JSON mode outputs ONLY the JSON object (no ANSI, no header) for clean piping
+- cache.ts: all hashing uses Node.js built-in crypto.createHash('sha256') — zero dependencies
+- cache.ts: getCached returns null on any error — cache is best-effort, never crashes analysis
+- cache.ts: project-level caching (full snapshot) — per-file partial re-analysis deferred to Phase 7
+- analyze.ts: all progress console.log guarded with if (!resolved.json) for clean JSON output
+- analyze.ts: renderResults called in both cache-hit (early return) and cache-miss (after agents) paths
 
 ### Pending Todos
 
@@ -115,6 +124,6 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-25
-Stopped at: Plan 06-01 complete — formatter.ts fully implemented (ANSI colors, Unicode box-drawing, score/risk formatting, terminal width utilities)
-Resume file: .planning/phases/06-terminal-output-caching/06-01-SUMMARY.md
-Next: Phase 6 (Terminal Output & Caching) — Plan 06-02 (renderer.ts)
+Stopped at: Phase 6 complete — all 3 plans executed (formatter.ts, renderer.ts, cache.ts, analyze.ts wiring)
+Resume file: .planning/phases/06-terminal-output-caching/06-02-SUMMARY.md
+Next: Phase 7 (Hardening & Extended Features) — plan first
