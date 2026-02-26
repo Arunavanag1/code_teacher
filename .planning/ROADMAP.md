@@ -19,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Agent Definitions & Dependency Graph** - Four agent markdown files, dependency graph, two-stage pipeline
 - [x] **Phase 6: Terminal Output & Caching** - ANSI formatter, three output modes, content-hash cache
 - [x] **Phase 7: Hardening & Extended Features** - Error handling, watch mode, init command, custom agents, real-world testing
+- [ ] **Phase 8: README & Separate Commands** - Streamline README for digestibility, add separate CLI commands for teachable moments, high-impact sections, and data structure decisions
 
 ## Phase Details
 
@@ -139,10 +140,19 @@ Plans:
 - [x] 07-02: Implement init command, custom agent loading from config, and --watch mode with file change detection
 - [x] 07-03: Real-world testing against 10+ open-source repos, performance optimization, README and package.json for publishing
 
+### Phase 8: README & Separate Commands
+**Goal**: Streamline the README for digestibility and add separate CLI commands (`code-teacher teach`, `code-teacher impact`, `code-teacher structures`) for the three core use cases
+**Depends on**: Phase 7
+**Plans**: 2 plans
+
+Plans:
+- [x] 08-01: Add teach, impact, structures CLI commands and implement mode-based output filtering in renderer
+- [ ] 08-02: Streamline README from 686 lines to ~200 lines, lead with focused commands
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
 
 Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 
@@ -155,3 +165,4 @@ Note: Phases 2 and 3 are independent and can execute in parallel after Phase 1.
 | 5. Agent Definitions & Dependency Graph | 3/3 | Complete | 2026-02-25 |
 | 6. Terminal Output & Caching | 3/3 | Complete | 2026-02-25 |
 | 7. Hardening & Extended Features | 3/3 | Complete | 2026-02-26 |
+| 8. README & Separate Commands | 1/2 | In Progress | -- |
