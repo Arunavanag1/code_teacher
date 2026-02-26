@@ -13,7 +13,7 @@ import type { DetectedProvider } from '../../providers/index.js';
 import { discoverFiles } from '../../core/file-discovery.js';
 import { chunkFile } from '../../core/chunker.js';
 import type { Chunk } from '../../core/chunker.js';
-import { runAgent, getBuiltInAgentPaths, getFullAnalysisAgentPaths } from '../../agents/runner.js';
+import { runAgent, getFullAnalysisAgentPaths, getAgentPathsForMode } from '../../agents/runner.js';
 import type { AgentResult } from '../../agents/runner.js';
 import { renderResults } from '../output/renderer.js';
 import { prioritizeFiles } from '../../agents/context.js';
@@ -117,24 +117,30 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
   // Load config from the target project path
   const config = loadConfig(path);
 
+  // Determine if this mode needs LLM calls at all
+  const mode = options.mode ?? 'all';
+  const needsLlm = mode !== 'sections';
+
   // Detect provider once — CLI flag > CODE_TEACHER_PROVIDER env > config file > API key auto-detect
   const detected = detectProvider(options.provider, options.model, config.provider, config.model);
 
   // Merge CLI options over config values (CLI wins), passing the detected provider
   const resolved = mergeConfig(config, options, path, detected);
 
-  // Print provider detection line per spec (suppressed in JSON mode for clean output)
+  // Provider detection only required when LLM agents will run
   if (detected) {
     if (!resolved.json) {
       console.log(
         `Using ${detected.provider} (${detected.model}) \u2014 detected from ${detected.source}`,
       );
     }
-  } else {
+  } else if (needsLlm) {
     console.error(
       `No LLM provider detected.\n\nSave your key once (works everywhere, including Claude Code and Codex):\n  code-teacher set-key anthropic sk-ant-...\n  code-teacher set-key openai sk-...\n  code-teacher set-key google AIza...\n\nOr set an environment variable:\n  export ANTHROPIC_API_KEY="sk-ant-..."`,
     );
     return;
+  } else if (!resolved.json) {
+    console.log('Static analysis only \u2014 no LLM provider needed.');
   }
 
   // Print resolved config as confirmation (suppressed in JSON mode for clean output)
@@ -155,8 +161,11 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     }
   }
 
-  // Create the LLM provider instance
-  const provider = createProvider(detected.provider, detected.model, config.ollamaUrl);
+  // Create the LLM provider instance (only when LLM agents will run)
+  const provider =
+    needsLlm && detected
+      ? createProvider(detected.provider, detected.model, config.ollamaUrl)
+      : undefined;
 
   // Discover files in the target project
   if (!resolved.json) {
@@ -197,8 +206,13 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     }
   }
 
-  // Resolve built-in agent paths (combined by default, full with --full-analysis)
-  const agentPaths = options.fullAnalysis ? getFullAnalysisAgentPaths() : getBuiltInAgentPaths();
+  // Resolve built-in agent paths based on mode:
+  // --full-analysis: original separate agents for all modes
+  // focused mode (teachings/structures/sections): only the needed agent(s)
+  // default (all): combined analyzer
+  const agentPaths = options.fullAnalysis
+    ? getFullAnalysisAgentPaths()
+    : getAgentPathsForMode(mode);
   // Custom agent paths resolve relative to the project root (not process.cwd())
   const allAgentPaths = [
     ...agentPaths,
@@ -281,44 +295,47 @@ export async function analyzeCommand(path: string, options: AnalyzeOptions): Pro
     ...agentPaths.slice(1), // Skip dependency-mapper.md (now static)
     ...resolved.customAgents.map((p) => resolve(resolved.targetPath, p)),
   ];
-  const llmResults = await Promise.all(
-    llmAgentPaths.map((agentPath) =>
-      runAgent({
-        agentPath,
-        files: prioritizedFiles,
-        chunks: prioritizedChunks,
-        projectPath: resolved.targetPath,
-        provider,
-        model: detected.model,
-      }),
-    ),
-  );
 
-  // Split combined analyzer output into separate synthetic results for renderer compatibility
   const expandedLlmResults: AgentResult[] = [];
-  for (const result of llmResults) {
-    if (result.agentName === 'Combined Analyzer') {
-      // Split into Teachability Scorer and Structure Analyzer synthetic results
-      expandedLlmResults.push({
-        agentName: 'Teachability Scorer',
-        output: { sections: result.output.sections ?? [] },
-        rawContent: result.rawContent,
-        tokenUsage: {
-          inputTokens: Math.floor(result.tokenUsage.inputTokens / 2),
-          outputTokens: Math.floor(result.tokenUsage.outputTokens / 2),
-        },
-      });
-      expandedLlmResults.push({
-        agentName: 'Structure Analyzer',
-        output: { decisions: result.output.decisions ?? [] },
-        rawContent: result.rawContent,
-        tokenUsage: {
-          inputTokens: Math.ceil(result.tokenUsage.inputTokens / 2),
-          outputTokens: Math.ceil(result.tokenUsage.outputTokens / 2),
-        },
-      });
-    } else {
-      expandedLlmResults.push(result);
+
+  if (llmAgentPaths.length > 0 && provider) {
+    const llmResults = await Promise.all(
+      llmAgentPaths.map((agentPath) =>
+        runAgent({
+          agentPath,
+          files: prioritizedFiles,
+          chunks: prioritizedChunks,
+          projectPath: resolved.targetPath,
+          provider,
+          model: detected!.model,
+        }),
+      ),
+    );
+
+    // Split combined analyzer output into separate synthetic results for renderer compatibility
+    for (const result of llmResults) {
+      if (result.agentName === 'Combined Analyzer') {
+        expandedLlmResults.push({
+          agentName: 'Teachability Scorer',
+          output: { sections: result.output.sections ?? [] },
+          rawContent: result.rawContent,
+          tokenUsage: {
+            inputTokens: Math.floor(result.tokenUsage.inputTokens / 2),
+            outputTokens: Math.floor(result.tokenUsage.outputTokens / 2),
+          },
+        });
+        expandedLlmResults.push({
+          agentName: 'Structure Analyzer',
+          output: { decisions: result.output.decisions ?? [] },
+          rawContent: result.rawContent,
+          tokenUsage: {
+            inputTokens: Math.ceil(result.tokenUsage.inputTokens / 2),
+            outputTokens: Math.ceil(result.tokenUsage.outputTokens / 2),
+          },
+        });
+      } else {
+        expandedLlmResults.push(result);
+      }
     }
   }
 

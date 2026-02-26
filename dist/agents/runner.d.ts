@@ -88,4 +88,12 @@ export declare function getBuiltInAgentPaths(): string[];
  * Used when --full-analysis flag is passed.
  */
 export declare function getFullAnalysisAgentPaths(): string[];
+/**
+ * Returns agent paths for a specific focused mode.
+ * - 'teachings': only teachability scorer
+ * - 'structures': only structure analyzer
+ * - 'sections': empty (impact is fully static, no LLM needed)
+ * - 'all': combined analyzer (default)
+ */
+export declare function getAgentPathsForMode(mode: string): string[];
 //# sourceMappingURL=runner.d.ts.map

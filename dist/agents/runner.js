@@ -233,4 +233,31 @@ export function getFullAnalysisAgentPaths() {
         resolve(definitionsDir, 'structure-analyzer.md'),
     ];
 }
+/**
+ * Returns agent paths for a specific focused mode.
+ * - 'teachings': only teachability scorer
+ * - 'structures': only structure analyzer
+ * - 'sections': empty (impact is fully static, no LLM needed)
+ * - 'all': combined analyzer (default)
+ */
+export function getAgentPathsForMode(mode) {
+    const definitionsDir = getDefinitionsDir();
+    switch (mode) {
+        case 'teachings':
+            return [
+                resolve(definitionsDir, 'dependency-mapper.md'),
+                resolve(definitionsDir, 'teachability-scorer.md'),
+            ];
+        case 'structures':
+            return [
+                resolve(definitionsDir, 'dependency-mapper.md'),
+                resolve(definitionsDir, 'structure-analyzer.md'),
+            ];
+        case 'sections':
+            // Impact ranking is fully static — no LLM agents needed
+            return [resolve(definitionsDir, 'dependency-mapper.md')];
+        default:
+            return getBuiltInAgentPaths();
+    }
+}
 //# sourceMappingURL=runner.js.map
