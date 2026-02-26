@@ -11,6 +11,7 @@ import type { LLMProvider } from '../providers/index.js';
 import type { FileInfo } from '../core/file-discovery.js';
 import type { Chunk } from '../core/chunker.js';
 import { buildContext } from './context.js';
+import { withRetry } from '../core/retry.js';
 
 /**
  * Parsed representation of an agent markdown definition file.
@@ -190,7 +191,12 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
   const { agentPath, files, chunks, projectPath, provider, model, importMap } = options;
 
   // Load and parse the agent definition
-  const rawMarkdown = await readFile(agentPath, 'utf-8');
+  let rawMarkdown: string;
+  try {
+    rawMarkdown = await readFile(agentPath, 'utf-8');
+  } catch {
+    throw new Error(`Cannot load agent definition: ${agentPath}`);
+  }
   const agent = parseAgentMarkdown(rawMarkdown);
 
   // Build system prompt from the agent's sections
@@ -224,11 +230,13 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
 
   userPrompt += `\n\n---\n\nTASK:\n${taskInstruction}`;
 
-  // First LLM call attempt
-  const response = await provider.call(systemPrompt, userPrompt, {
-    responseFormat: 'json',
-    temperature: 0.2,
-  });
+  // First LLM call attempt (withRetry handles API rate limits and server errors)
+  const response = await withRetry(() =>
+    provider.call(systemPrompt, userPrompt, {
+      responseFormat: 'json',
+      temperature: 0.2,
+    }),
+  );
 
   const parsed = parseJsonResponse(response.content);
   if (parsed !== null) {
@@ -242,10 +250,12 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
 
   // First attempt failed — retry with stricter system prompt and lower temperature
   const retrySystemPrompt = systemPrompt + STRICT_JSON_SUFFIX;
-  const retryResponse = await provider.call(retrySystemPrompt, userPrompt, {
-    responseFormat: 'json',
-    temperature: 0.1, // Lower temperature for more deterministic JSON output
-  });
+  const retryResponse = await withRetry(() =>
+    provider.call(retrySystemPrompt, userPrompt, {
+      responseFormat: 'json',
+      temperature: 0.1, // Lower temperature for more deterministic JSON output
+    }),
+  );
 
   const retryParsed = parseJsonResponse(retryResponse.content);
   if (retryParsed !== null) {
@@ -258,7 +268,7 @@ export async function runAgent(options: AgentRunOptions): Promise<AgentResult> {
   }
 
   // Both attempts failed — return empty result with warning
-  // Phase 7 will add harder error recovery (exponential backoff, partial results)
+  // Both JSON parse attempts failed — exponential backoff has been applied by withRetry on API errors
   console.warn(
     `Warning: Agent '${agent.name}' returned malformed JSON after 1 retry. Returning empty result.`,
   );
